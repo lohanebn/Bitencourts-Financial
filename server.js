@@ -34,6 +34,8 @@ app.use('/api/parcelamentos', require('./routes/parcelamentoRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/projecao', require('./routes/projecaoRoutes'));
 app.use('/api/pagamentos', require('./routes/pagamentoRoutes'));
+app.use('/api/auditoria', require('./routes/auditoriaRoutes'));
+
 
 // Rota principal (SPA - Single Page Application)
 app.get('/', (req, res) => {

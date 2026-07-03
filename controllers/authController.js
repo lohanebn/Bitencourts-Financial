@@ -1,5 +1,6 @@
 const UsuarioModel = require('../models/usuarioModel');
-const { compararSenha, gerarToken, gerarSessionId, hashToken, gerarSenhaTemporaria } = require('../utils/auth');
+const { compararSenha, gerarToken, gerarSessionId, hashSenha, hashToken, gerarSenhaTemporaria } = require('../utils/auth');
+const { registrarAcao } = require('../utils/auditoria');
 
 const AuthController = {
   async login(req, res) {
@@ -45,6 +46,7 @@ const AuthController = {
       });
 
       await UsuarioModel.atualizarUltimoLogin(usuarioDb.id);
+      await registrarAcao({ auth:{ usuarioId: usuarioDb.id }, usuario:{ nome: usuarioDb.nome } }, 'Login', 'Login realizado com sucesso.');
 
       return res.json({
         sucesso: true,
@@ -77,6 +79,7 @@ const AuthController = {
       if (req.auth?.sessionId) {
         await UsuarioModel.revogarSessao(req.auth.sessionId);
       }
+      await registrarAcao(req, 'Logout', 'Logout realizado.');
       return res.json({ sucesso: true, mensagem: 'Logout realizado com sucesso.' });
     } catch (err) {
       return res.status(500).json({ sucesso: false, mensagem: 'Erro ao encerrar sessão.', erro: err.message });
@@ -103,6 +106,7 @@ const AuthController = {
       const senhaHash = await require('../utils/auth').hashSenha(novaSenha);
       await UsuarioModel.atualizarSenha(usuarioDb.id, senhaHash);
       await UsuarioModel.marcarPrimeiroAcessoConcluido(usuarioDb.id);
+      await registrarAcao({ auth:{ usuarioId: usuarioDb.id }, usuario:{ nome: usuarioDb.nome } }, 'Alteração de senha', 'Senha alterada no primeiro acesso.');
 
       return res.json({ sucesso: true, mensagem: 'Senha alterada com sucesso. Faça login novamente.' });
     } catch (err) {
@@ -126,6 +130,7 @@ const AuthController = {
       const senhaHash = await require('../utils/auth').hashSenha(novaSenha);
       await UsuarioModel.atualizarSenha(req.auth.usuarioId, senhaHash);
       await UsuarioModel.marcarPrimeiroAcessoConcluido(req.auth.usuarioId);
+      await registrarAcao(req, 'Alteração de senha', 'Senha alterada pelo usuário.');
 
       return res.json({ sucesso: true, mensagem: 'Senha alterada com sucesso.' });
     } catch (err) {

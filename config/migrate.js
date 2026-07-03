@@ -92,6 +92,20 @@ async function migrar() {
   await adicionar('pagamentos','origem','VARCHAR(100) NULL AFTER descricao');
   await adicionar('pagamentos','responsavel','VARCHAR(100) NULL AFTER origem');
 
+  await db.query(`CREATE TABLE IF NOT EXISTS auditoria (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NULL,
+    usuario_nome VARCHAR(120) NULL,
+    tipo_acao VARCHAR(60) NOT NULL,
+    descricao VARCHAR(255) NOT NULL,
+    detalhes TEXT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_auditoria_usuario(usuario_id),
+    INDEX idx_auditoria_tipo(tipo_acao),
+    INDEX idx_auditoria_data(criado_em),
+    CONSTRAINT fk_auditoria_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL ON UPDATE CASCADE
+  ) ENGINE=InnoDB`);
+
   // v7: converter categoria de despesas de ENUM para VARCHAR (permite categorias personalizadas)
   const [tipoCat]=await db.query(
     `SELECT DATA_TYPE FROM information_schema.COLUMNS

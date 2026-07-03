@@ -13,7 +13,12 @@
   <div class="login-shell" id="loginShell">
     <div class="login-card">
       <div class="login-brand">
-        <div class="icone-marca">B</div>
+        <div class="icone-marca icone-marca-login" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="5" width="16" height="14" rx="3"></rect>
+            <path d="M7 9h10"></path>
+          </svg>
+        </div>
         <div>
           <h2>Bitencourt's Financial</h2>
           <p>Entre com suas credenciais para continuar.</p>
@@ -27,9 +32,17 @@
         </div>
         <div class="grupo-form">
           <label for="loginSenha">Senha</label>
-          <input class="campo-input" id="loginSenha" name="senha" type="password" required>
+          <div class="campo-senha-wrapper">
+            <input class="campo-input" id="loginSenha" name="senha" type="password" required>
+            <button type="button" class="botao-icone botao-olho" id="toggleSenhaLogin" aria-label="Mostrar senha">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
         </div>
-        <button type="submit" class="botao botao-primario" style="width:100%;">Entrar</button>
+        <button type="submit" class="botao botao-primario">Entrar</button>
       </form>
       <form id="formTrocaSenha" class="login-form" style="display:none;">
         <div class="grupo-form">

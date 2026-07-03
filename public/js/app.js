@@ -169,6 +169,18 @@ document.addEventListener('click', (evento) => {
   }
 });
 
+document.getElementById('toggleSenhaLogin')?.addEventListener('click', () => {
+  const senhaInput = document.getElementById('loginSenha');
+  const botao = document.getElementById('toggleSenhaLogin');
+  if (!senhaInput || !botao) return;
+  const visivel = senhaInput.type === 'password';
+  senhaInput.type = visivel ? 'text' : 'password';
+  botao.setAttribute('aria-label', visivel ? 'Ocultar senha' : 'Mostrar senha');
+  botao.innerHTML = visivel
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.26 19.26 0 0 1 5-5.94"></path><path d="M1 1l22 22"></path><path d="M9.88 9.88a3 3 0 0 0 4.24 4.24"></path></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+});
+
 function corDoStatus(status) {
   if (status === 'Pago') return 'badge-pago';
   if (status === 'Atrasado') return 'badge-atrasado';
@@ -492,9 +504,52 @@ async function renderizarDashboard() {
         </div>
       </div>
     </div>
+
+    <div class="painel painel-timeline">
+      <div class="painel-cabecalho timeline-cabecalho">
+        <div>
+          <h3>Linha do Tempo das Alterações</h3>
+          <p class="timeline-subtitulo">Últimas ações do sistema, atualizadas automaticamente.</p>
+        </div>
+        <button class="botao botao-secundario" id="botaoVerHistoricoCompleto">Ver histórico completo</button>
+      </div>
+      <div class="timeline-lista" id="timelineLista">
+        <div class="estado-vazio"><p>Carregando ações recentes...</p></div>
+      </div>
+    </div>
   `;
   document.getElementById('dashTipoPeriodo').value=Estado.periodo.periodo;
   document.querySelectorAll('#filtrosDashboard input,#filtrosDashboard select').forEach(el=>el.addEventListener('change',()=>{lerPeriodo('dash');renderizarDashboard();}));
+  document.getElementById('botaoVerHistoricoCompleto')?.addEventListener('click', () => {
+    mostrarToast('Histórico completo disponível em breve.', 'info');
+  });
+  await carregarTimeline();
+}
+
+async function carregarTimeline() {
+  const container = document.getElementById('timelineLista');
+  if (!container) return;
+  try {
+    const resp = await chamarApi('/auditoria?limite=20');
+    const registros = resp.dados || [];
+    if (!registros.length) {
+      container.innerHTML = `<div class="estado-vazio"><p>Nenhuma ação registrada ainda.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = registros.map(item => `
+      <div class="timeline-item">
+        <div class="timeline-meta">
+          <strong>${escaparHtml(item.usuario_nome || 'Sistema')}</strong>
+          <span>${escaparHtml(item.tipo_acao)}</span>
+        </div>
+        <p>${escaparHtml(item.descricao)}</p>
+        <small>${new Date(item.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</small>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<div class="estado-vazio"><p>Falha ao carregar a linha do tempo.</p></div>`;
+  }
 }
 
 function renderizarTabelaResumoPessoa(lista) {

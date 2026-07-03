@@ -3,6 +3,7 @@
 // =====================================================================
 const CartaoModel = require('../models/cartaoModel');
 const { normalizarPeriodo } = require('../utils/periodo');
+const { registrarAcao } = require('../utils/auditoria');
 
 const CartaoController = {
   async listar(req, res) {
@@ -32,6 +33,7 @@ const CartaoController = {
         return res.status(400).json({ sucesso: false, mensagem: 'Campos obrigatórios não preenchidos.' });
       }
       const cartao = await CartaoModel.criar(req.body);
+      await registrarAcao(req, 'Cadastro de cartão', `Cartão cadastrado: ${cartao.nome_cartao}`);
       res.status(201).json({ sucesso: true, dados: cartao, mensagem: 'Cartão cadastrado com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao cadastrar cartão.', erro: err.message });
@@ -43,6 +45,7 @@ const CartaoController = {
       const existente = await CartaoModel.buscarPorId(req.params.id);
       if (!existente) return res.status(404).json({ sucesso: false, mensagem: 'Cartão não encontrado.' });
       const cartao = await CartaoModel.atualizar(req.params.id, req.body);
+      await registrarAcao(req, 'Atualização de cartão', `Cartão atualizado: ${cartao.nome_cartao}`);
       res.json({ sucesso: true, dados: cartao, mensagem: 'Cartão atualizado com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao atualizar cartão.', erro: err.message });
@@ -64,6 +67,7 @@ const CartaoController = {
       const existente = await CartaoModel.buscarPorId(req.params.id);
       if (!existente) return res.status(404).json({ sucesso: false, mensagem: 'Cartão não encontrado.' });
       await CartaoModel.excluir(req.params.id);
+      await registrarAcao(req, 'Exclusão de cartão', `Cartão excluído: ${existente.nome_cartao}`);
       res.json({ sucesso: true, mensagem: 'Cartão excluído com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao excluir cartão.', erro: err.message });

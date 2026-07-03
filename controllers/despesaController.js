@@ -2,6 +2,7 @@
 // CONTROLLER: Despesas
 // =====================================================================
 const DespesaModel = require('../models/despesaModel');
+const { registrarAcao } = require('../utils/auditoria');
 
 const DespesaController = {
   async listar(req, res) {
@@ -62,6 +63,7 @@ const DespesaController = {
       const mensagem = eh_recorrente
         ? 'Despesa fixa recorrente cadastrada. As próximas ocorrências foram geradas automaticamente.'
         : 'Despesa cadastrada com sucesso.';
+      await registrarAcao(req, 'Cadastro de despesa', `Despesa cadastrada: ${despesa.descricao}`);
       res.status(201).json({ sucesso: true, dados: despesa, mensagem });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao cadastrar despesa.', erro: err.message });
@@ -73,6 +75,7 @@ const DespesaController = {
       const existente = await DespesaModel.buscarPorId(req.params.id);
       if (!existente) return res.status(404).json({ sucesso: false, mensagem: 'Despesa não encontrada.' });
       const despesa = await DespesaModel.atualizar(req.params.id, req.body);
+      await registrarAcao(req, 'Atualização de despesa', `Despesa atualizada: ${despesa.descricao}`);
       res.json({ sucesso: true, dados: despesa, mensagem: 'Despesa atualizada com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao atualizar despesa.', erro: err.message });
@@ -84,6 +87,7 @@ const DespesaController = {
       const existente = await DespesaModel.buscarPorId(req.params.id);
       if (!existente) return res.status(404).json({ sucesso: false, mensagem: 'Despesa não encontrada.' });
       await DespesaModel.excluir(req.params.id);
+      await registrarAcao(req, 'Exclusão de despesa', `Despesa excluída: ${existente.descricao}`);
       res.json({ sucesso: true, mensagem: 'Despesa excluída com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao excluir despesa.', erro: err.message });
@@ -95,6 +99,7 @@ const DespesaController = {
       const ids=Array.isArray(req.body.ids)?req.body.ids:[];
       if(!ids.length) return res.status(400).json({sucesso:false,mensagem:'Selecione ao menos uma despesa.'});
       const quantidade=await DespesaModel.excluirEmLote(ids);
+      await registrarAcao(req, 'Exclusão em lote de despesas', `${quantidade} despesa(s) excluída(s)`);
       res.json({sucesso:true,dados:{quantidade},mensagem:`${quantidade} despesa(s) excluída(s).`});
     } catch(err){res.status(500).json({sucesso:false,mensagem:'Erro ao excluir despesas.',erro:err.message});}
   }

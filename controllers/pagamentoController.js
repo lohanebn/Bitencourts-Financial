@@ -1,5 +1,6 @@
 const PagamentoModel = require('../models/pagamentoModel');
 const { normalizarPeriodo } = require('../utils/periodo');
+const { registrarAcao } = require('../utils/auditoria');
 
 module.exports = {
   async listar(req, res) {
@@ -26,6 +27,7 @@ module.exports = {
       if (!origem_tipo || !origem_id || !valor_pago || !data_pagamento)
         return res.status(400).json({ sucesso:false, mensagem:'Preencha os campos obrigatórios.' });
       const dados = await PagamentoModel.registrar(req.body);
+      await registrarAcao(req, 'Registro de pagamento', `Pagamento registrado: ${dados.origem_tipo} #${dados.origem_id} valor ${dados.valor_pago}`);
       res.status(201).json({ sucesso:true, dados, mensagem:'Pagamento registrado e saldos atualizados.' });
     } catch (err) { res.status(400).json({ sucesso:false, mensagem:'Erro ao registrar pagamento.', erro:err.message }); }
   },
@@ -36,6 +38,7 @@ module.exports = {
       if (!cartao_id || !data_vencimento || !data_pagamento)
         return res.status(400).json({ sucesso:false, mensagem:'cartao_id, data_vencimento e data_pagamento são obrigatórios.' });
       const dados = await PagamentoModel.pagarCartaoFatura(req.body);
+      await registrarAcao(req, 'Pagamento de fatura', `Fatura de cartão paga: cartão ${req.body.cartao_id}, valor ${req.body.valor_pago}`);
       res.status(201).json({ sucesso:true, dados, mensagem:'Fatura paga com sucesso.' });
     } catch (err) { res.status(400).json({ sucesso:false, mensagem:'Erro ao pagar fatura.', erro:err.message }); }
   },
@@ -43,6 +46,7 @@ module.exports = {
   async estornar(req, res) {
     try {
       const dados = await PagamentoModel.estornar(req.params.id);
+      await registrarAcao(req, 'Estorno de pagamento', `Pagamento estornado: ${req.params.id}`);
       res.json({ sucesso:true, dados, mensagem:'Baixa estornada com sucesso.' });
     } catch (err) { res.status(400).json({ sucesso:false, mensagem:'Erro ao estornar baixa.', erro:err.message }); }
   }

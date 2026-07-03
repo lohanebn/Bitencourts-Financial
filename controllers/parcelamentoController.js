@@ -2,6 +2,7 @@
 // CONTROLLER: Parcelamentos / Obrigações Parceladas (v2)
 // =====================================================================
 const ParcelamentoModel = require('../models/parcelamentoModel');
+const { registrarAcao } = require('../utils/auditoria');
 
 // Campos obrigatórios por tipo de obrigação
 const CAMPOS_OBRIGATORIOS = {
@@ -64,6 +65,7 @@ const ParcelamentoController = {
       }
 
       const parcelamento = await ParcelamentoModel.criar(req.body);
+      await registrarAcao(req, 'Cadastro de parcelamento', `Obrigação parcelada cadastrada: ${parcelamento.descricao_compra || parcelamento.tipo_obrigacao}`);
       res.status(201).json({
         sucesso: true,
         dados: parcelamento,
@@ -79,6 +81,7 @@ const ParcelamentoController = {
       const existente = await ParcelamentoModel.buscarPorId(req.params.id);
       if (!existente) return res.status(404).json({ sucesso: false, mensagem: 'Obrigação parcelada não encontrada.' });
       await ParcelamentoModel.excluir(req.params.id);
+      await registrarAcao(req, 'Exclusão de parcelamento', `Obrigação parcelada excluída: ${existente.descricao_compra || existente.tipo_obrigacao}`);
       res.json({ sucesso: true, mensagem: 'Obrigação parcelada e suas parcelas foram excluídas com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao excluir obrigação parcelada.', erro: err.message });
@@ -89,6 +92,7 @@ const ParcelamentoController = {
     try {
       const dados=await ParcelamentoModel.atualizar(req.params.id,req.body);
       if(!dados) return res.status(404).json({sucesso:false,mensagem:'Obrigação não encontrada.'});
+      await registrarAcao(req, 'Atualização de parcelamento', `Obrigação parcelada atualizada: ${dados.descricao_compra || dados.tipo_obrigacao}`);
       res.json({sucesso:true,dados,mensagem:'Obrigação atualizada.'});
     } catch(err){res.status(500).json({sucesso:false,mensagem:'Erro ao atualizar obrigação.',erro:err.message});}
   },
@@ -109,6 +113,7 @@ const ParcelamentoController = {
         return res.status(400).json({ sucesso: false, mensagem: 'Status inválido. Use "Pago" ou "Pendente".' });
       }
       const parcela = await ParcelamentoModel.marcarParcelaPaga(req.params.parcelaId, status);
+      await registrarAcao(req, 'Atualização de parcela', `Parcela ${req.params.parcelaId} marcada como ${status}.`);
       res.json({ sucesso: true, dados: parcela, mensagem: 'Status da parcela atualizado.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao atualizar parcela.', erro: err.message });

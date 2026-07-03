@@ -126,6 +126,38 @@ button { font-family: var(--fonte-corpo); }
   color: var(--cor-vermelho);
 }
 
+.campo-senha-wrapper {
+  position: relative;
+}
+
+.campo-senha-wrapper .campo-input {
+  padding-right: 46px;
+}
+
+.botao-olho {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  min-width: 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.botao-olho:hover {
+  background: var(--cor-fundo);
+  border-color: var(--cor-azul-escuro);
+  color: var(--cor-texto);
+}
+
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -725,7 +757,91 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
 .evento-calendario strong { grid-row: 1 / 3; color: var(--cor-azul-escuro); font-family: var(--fonte-titulo); font-size: 18px; }
 .evento-calendario span { overflow-wrap: anywhere; font-weight: 600; line-height: 1.35; }
 .evento-calendario small { color: var(--cor-texto-suave); overflow-wrap: anywhere; line-height: 1.35; }
+.painel-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 
+.timeline-cabecalho {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.timeline-subtitulo {
+  margin: 4px 0 0;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+  max-width: 560px;
+}
+
+.timeline-lista {
+  display: grid;
+  gap: 12px;
+  padding: 18px 22px 22px;
+}
+
+.timeline-item {
+  background: var(--cor-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  padding: 16px 18px;
+}
+
+.timeline-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.timeline-meta strong {
+  font-size: 14px;
+  color: var(--cor-texto);
+}
+
+.timeline-meta span {
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.timeline-item p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.timeline-item small {
+  color: var(--cor-texto-suave);
+  font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  .grade-cards {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
+  .grade-painéis-duas-colunas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .topo-pagina,
+  .area-pagina,
+  .painel-cabecalho,
+  .barra-filtros {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .login-card {
+    width: 100%;
+  }
+  .painel {
+    margin-bottom: 18px;
+  }
+}
 .linha-grafico-categoria { display: flex; flex-direction: column; gap: 6px; }
 
 .linha-grafico-categoria .topo-linha-grafico {
