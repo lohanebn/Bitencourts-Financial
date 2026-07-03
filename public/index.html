@@ -516,6 +516,45 @@
     </div>
   </div>
 
+  <!-- Modal Histórico Completo de Auditoria -->
+  <div class="fundo-modal" id="modalHistorico">
+    <div class="caixa-modal" style="max-width:720px;width:95vw;">
+      <div class="modal-cabecalho">
+        <div>
+          <h3>Histórico completo de auditoria</h3>
+          <p style="margin:4px 0 0;font-size:13px;color:var(--cor-texto-suave)">Todas as ações registradas no sistema.</p>
+        </div>
+        <button type="button" class="botao-icone" data-fechar-modal="modalHistorico" title="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-corpo" style="padding-top:0">
+        <div class="grupo-form" style="margin-bottom:14px">
+          <label for="historicoFiltroTipo">Filtrar por tipo de ação</label>
+          <select class="campo-select" id="historicoFiltroTipo">
+            <option value="">Todos</option>
+            <option value="Login">Login</option>
+            <option value="Logout">Logout</option>
+            <option value="senha">Senha</option>
+            <option value="Cadastro">Cadastro</option>
+            <option value="Atualiza">Atualização</option>
+            <option value="Exclus">Exclusão</option>
+            <option value="Pagamento">Pagamento</option>
+            <option value="parcel">Parcelamento</option>
+            <option value="usuário">Usuário</option>
+          </select>
+        </div>
+        <div class="timeline-lista" id="historicoLista" style="max-height:56vh;overflow-y:auto;padding:0">
+          <div class="estado-vazio"><p>Carregando histórico...</p></div>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="botao botao-secundario" data-fechar-modal="modalHistorico">Fechar</button>
+        <button type="button" class="botao botao-primario" id="botaoCarregarMaisHistorico">Carregar mais</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Editar Lançamento da Fatura -->
   <div class="fundo-modal" id="modalEditarLancamento">
     <div class="caixa-modal" style="max-width:440px;width:95vw;">

@@ -2,6 +2,11 @@ const db = require('../config/database');
 const { aplicarPeriodo } = require('../utils/periodo');
 
 const PagamentoModel = {
+  async buscarPorId(id) {
+    const [rows] = await db.query('SELECT * FROM pagamentos WHERE id = ?', [id]);
+    return rows[0];
+  },
+
   async listarPendentes(periodo, origem = null) {
     const isAll = !origem || origem === 'Todas';
     const tiposNCC = ['Empréstimo','Financiamento','Consórcio','Boleto Parcelado','Acordo de Dívida','Outro'];

@@ -2,7 +2,7 @@
 // CONTROLLER: Despesas
 // =====================================================================
 const DespesaModel = require('../models/despesaModel');
-const { registrarAcao } = require('../utils/auditoria');
+const { registrarAcao, gerarDetalhesAlteracao, gerarDetalhesCadastro, gerarDetalhesExclusao, gerarDetalhesExclusaoLote } = require('../utils/auditoria');
 
 const DespesaController = {
   async listar(req, res) {
@@ -63,7 +63,7 @@ const DespesaController = {
       const mensagem = eh_recorrente
         ? 'Despesa fixa recorrente cadastrada. As próximas ocorrências foram geradas automaticamente.'
         : 'Despesa cadastrada com sucesso.';
-      await registrarAcao(req, 'Cadastro de despesa', `Despesa cadastrada: ${despesa.descricao}`);
+      await registrarAcao(req, 'Cadastro de despesa', 'Cadastrou uma nova despesa', gerarDetalhesCadastro('despesa', despesa, { entidadeLabel: 'Despesa' }));
       res.status(201).json({ sucesso: true, dados: despesa, mensagem });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao cadastrar despesa.', erro: err.message });
@@ -75,7 +75,7 @@ const DespesaController = {
       const existente = await DespesaModel.buscarPorId(req.params.id);
       if (!existente) return res.status(404).json({ sucesso: false, mensagem: 'Despesa não encontrada.' });
       const despesa = await DespesaModel.atualizar(req.params.id, req.body);
-      await registrarAcao(req, 'Atualização de despesa', `Despesa atualizada: ${despesa.descricao}`);
+      await registrarAcao(req, 'Atualização de despesa', 'Atualizou uma despesa', gerarDetalhesAlteracao(existente, despesa, { entidade: 'despesa', entidadeLabel: 'Despesa', titulo: 'Atualizou uma despesa' }));
       res.json({ sucesso: true, dados: despesa, mensagem: 'Despesa atualizada com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao atualizar despesa.', erro: err.message });
@@ -87,7 +87,7 @@ const DespesaController = {
       const existente = await DespesaModel.buscarPorId(req.params.id);
       if (!existente) return res.status(404).json({ sucesso: false, mensagem: 'Despesa não encontrada.' });
       await DespesaModel.excluir(req.params.id);
-      await registrarAcao(req, 'Exclusão de despesa', `Despesa excluída: ${existente.descricao}`);
+      await registrarAcao(req, 'Exclusão de despesa', 'Excluiu uma despesa', gerarDetalhesExclusao('despesa', existente, { entidadeLabel: 'Despesa', titulo: 'Excluiu uma despesa' }));
       res.json({ sucesso: true, mensagem: 'Despesa excluída com sucesso.' });
     } catch (err) {
       res.status(500).json({ sucesso: false, mensagem: 'Erro ao excluir despesa.', erro: err.message });
@@ -98,8 +98,9 @@ const DespesaController = {
     try {
       const ids=Array.isArray(req.body.ids)?req.body.ids:[];
       if(!ids.length) return res.status(400).json({sucesso:false,mensagem:'Selecione ao menos uma despesa.'});
+      const despesas=(await Promise.all(ids.map(id=>DespesaModel.buscarPorId(id)))).filter(Boolean);
       const quantidade=await DespesaModel.excluirEmLote(ids);
-      await registrarAcao(req, 'Exclusão em lote de despesas', `${quantidade} despesa(s) excluída(s)`);
+      await registrarAcao(req, 'Exclusão em lote de despesas', `${quantidade} despesa(s) excluída(s)`, gerarDetalhesExclusaoLote('despesa', despesas, { entidadeLabel: 'Despesas', titulo: `Excluiu ${quantidade} despesa(s)` }));
       res.json({sucesso:true,dados:{quantidade},mensagem:`${quantidade} despesa(s) excluída(s).`});
     } catch(err){res.status(500).json({sucesso:false,mensagem:'Erro ao excluir despesas.',erro:err.message});}
   }

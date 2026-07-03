@@ -10,7 +10,7 @@ const AuditoriaModel = {
     return true;
   },
 
-  async listar({ limite = 20, periodo = null }) {
+  async listar({ limite = 20, offset = 0, periodo = null, tipo_acao = null, usuario_id = null }) {
     const params = [];
     let sql = `SELECT id, usuario_id, usuario_nome, tipo_acao, descricao, detalhes, criado_em FROM auditoria WHERE 1=1`;
     if (periodo?.inicio) {
@@ -21,8 +21,16 @@ const AuditoriaModel = {
       sql += ' AND criado_em <= ?';
       params.push(periodo.fim);
     }
-    sql += ' ORDER BY criado_em DESC LIMIT ?';
-    params.push(limite);
+    if (tipo_acao) {
+      sql += ' AND tipo_acao LIKE ?';
+      params.push(`%${tipo_acao}%`);
+    }
+    if (usuario_id) {
+      sql += ' AND usuario_id = ?';
+      params.push(usuario_id);
+    }
+    sql += ' ORDER BY criado_em DESC, id DESC LIMIT ? OFFSET ?';
+    params.push(limite, offset);
     const [rows] = await db.query(sql, params);
     return rows;
   }

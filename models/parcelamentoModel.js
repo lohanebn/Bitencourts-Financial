@@ -177,6 +177,11 @@ const ParcelamentoModel = {
     return this.buscarComParcelas(id);
   },
 
+  async buscarParcelaPorId(id) {
+    const [rows] = await db.query('SELECT * FROM parcelas WHERE id = ?', [id]);
+    return rows[0];
+  },
+
   async marcarParcelaPaga(parcelaId, status) {
     await db.query('UPDATE parcelas SET status = ? WHERE id = ?', [status, parcelaId]);
     const [rows] = await db.query('SELECT * FROM parcelas WHERE id = ?', [parcelaId]);

@@ -520,10 +520,144 @@ async function renderizarDashboard() {
   `;
   document.getElementById('dashTipoPeriodo').value=Estado.periodo.periodo;
   document.querySelectorAll('#filtrosDashboard input,#filtrosDashboard select').forEach(el=>el.addEventListener('change',()=>{lerPeriodo('dash');renderizarDashboard();}));
-  document.getElementById('botaoVerHistoricoCompleto')?.addEventListener('click', () => {
-    mostrarToast('Histórico completo disponível em breve.', 'info');
-  });
+  document.getElementById('botaoVerHistoricoCompleto')?.addEventListener('click', abrirHistoricoCompleto);
   await carregarTimeline();
+}
+
+function formatarDataHora(dataISO) {
+  if (!dataISO) return '—';
+  const valor = new Date(dataISO);
+  if (Number.isNaN(valor.getTime())) return '—';
+  return valor.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function parsearDetalhesAuditoria(item) {
+  if (!item?.detalhes) return null;
+  if (typeof item.detalhes === 'object') return item.detalhes;
+  try {
+    return JSON.parse(item.detalhes);
+  } catch (err) {
+    return null;
+  }
+}
+
+function obterInfoTimeline(item) {
+  const tipo = String(item?.tipo_acao || 'Ação').toLowerCase();
+  if (tipo.includes('login')) return { icone: '🔐', classe: 'timeline-badge-login', label: 'Login' };
+  if (tipo.includes('logout')) return { icone: '🚪', classe: 'timeline-badge-logout', label: 'Logout' };
+  if (tipo.includes('senha')) return { icone: '🔑', classe: 'timeline-badge-senha', label: 'Senha' };
+  if (tipo.includes('cadastro')) return { icone: '➕', classe: 'timeline-badge-cadastro', label: 'Cadastro' };
+  if (tipo.includes('atualiza')) return { icone: '✏️', classe: 'timeline-badge-atualizacao', label: 'Atualização' };
+  if (tipo.includes('exclus')) return { icone: '🗑️', classe: 'timeline-badge-exclusao', label: 'Exclusão' };
+  if (tipo.includes('pagamento') || tipo.includes('fatura')) return { icone: '💳', classe: 'timeline-badge-pagamento', label: 'Pagamento' };
+  if (tipo.includes('parcel')) return { icone: '🧾', classe: 'timeline-badge-parcelamento', label: 'Parcelamento' };
+  if (tipo.includes('usuário') || tipo.includes('usuario')) return { icone: '👤', classe: 'timeline-badge-usuario', label: 'Usuário' };
+  return { icone: '🗂️', classe: 'timeline-badge-default', label: item?.tipo_acao || 'Ação' };
+}
+
+function renderizarDetalhesTimeline(item) {
+  const detalhes = parsearDetalhesAuditoria(item);
+  if (!detalhes) {
+    return `
+      <div class="timeline-detalhes">
+        <p class="timeline-paragrafo">${escaparHtml(item?.descricao || 'Registro de auditoria enviado pelo sistema.')}</p>
+      </div>`;
+  }
+
+  const info = obterInfoTimeline(item);
+  const titulo = detalhes.titulo || item?.descricao || 'Alteração registrada';
+  const resumo = detalhes.resumo || detalhes.registro?.valor || item?.descricao || 'Detalhes disponíveis para análise.';
+  const registro = detalhes.registro;
+
+  let corpo = `
+    <div class="timeline-detalhes">
+      <div class="timeline-card">
+        <span class="timeline-card-label">Resumo</span>
+        <strong>${escaparHtml(titulo)}</strong>
+        <p>${escaparHtml(resumo)}</p>
+      </div>`;
+
+  if (registro?.valor) {
+    corpo += `
+      <div class="timeline-card">
+        <span class="timeline-card-label">Registro afetado</span>
+        <strong>${escaparHtml(registro.valor)}</strong>
+      </div>`;
+  }
+
+  if (detalhes.tipo === 'alteracao' && Array.isArray(detalhes.mudancas) && detalhes.mudancas.length) {
+    corpo += `
+      <div class="timeline-card">
+        <span class="timeline-card-label">O que foi alterado</span>
+        <div class="timeline-lista-campos">
+          ${detalhes.mudancas.map(mudanca => `
+            <div class="timeline-comparativo">
+              <div class="timeline-comparativo-titulo">${escaparHtml(mudanca.campo)}</div>
+              <div class="timeline-comparativo-grid">
+                <div class="timeline-valor antigo">
+                  <span>De</span>
+                  <strong>${escaparHtml(mudanca.de || '—')}</strong>
+                </div>
+                <div class="timeline-valor novo">
+                  <span>Para</span>
+                  <strong>${escaparHtml(mudanca.para || '—')}</strong>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  } else if (Array.isArray(detalhes.campos) && detalhes.campos.length) {
+    corpo += `
+      <div class="timeline-card">
+        <span class="timeline-card-label">Detalhes</span>
+        <div class="timeline-lista-campos">
+          ${detalhes.campos.map(campo => `
+            <div class="timeline-campo">
+              <strong>${escaparHtml(campo.campo)}</strong>
+              <span>${escaparHtml(campo.valor || '—')}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  if (detalhes.tipo === 'exclusao' && detalhes.motivo) {
+    corpo += `
+      <div class="timeline-card">
+        <span class="timeline-card-label">Motivo</span>
+        <strong>${escaparHtml(detalhes.motivo)}</strong>
+      </div>`;
+  }
+
+  corpo += '</div>';
+  return corpo;
+}
+
+function montarItemTimelineHtml(item) {
+  const info = obterInfoTimeline(item);
+  const detalhes = parsearDetalhesAuditoria(item);
+  const titulo = detalhes?.titulo || item?.descricao || 'Alteração registrada';
+  const resumo = detalhes?.resumo || detalhes?.registro?.valor || item?.descricao || 'Detalhes disponíveis para análise.';
+  return `
+    <details class="timeline-item timeline-details">
+      <summary class="timeline-summary">
+        <div class="timeline-icone ${info.classe}">${info.icone}</div>
+        <div class="timeline-conteudo-resumo">
+          <div class="timeline-meta">
+            <div class="timeline-usuario">
+              <strong>${escaparHtml(item.usuario_nome || 'Sistema')}</strong>
+              <span class="timeline-badge ${info.classe}">${escaparHtml(info.label)}</span>
+            </div>
+            <small>${formatarDataHora(item.criado_em)}</small>
+          </div>
+          <p>${escaparHtml(titulo)}</p>
+          <span class="timeline-resumo-texto">${escaparHtml(resumo)}</span>
+        </div>
+        <span class="timeline-chevron">▾</span>
+      </summary>
+      ${renderizarDetalhesTimeline(item)}
+    </details>`;
 }
 
 async function carregarTimeline() {
@@ -536,21 +670,60 @@ async function carregarTimeline() {
       container.innerHTML = `<div class="estado-vazio"><p>Nenhuma ação registrada ainda.</p></div>`;
       return;
     }
-
-    container.innerHTML = registros.map(item => `
-      <div class="timeline-item">
-        <div class="timeline-meta">
-          <strong>${escaparHtml(item.usuario_nome || 'Sistema')}</strong>
-          <span>${escaparHtml(item.tipo_acao)}</span>
-        </div>
-        <p>${escaparHtml(item.descricao)}</p>
-        <small>${new Date(item.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</small>
-      </div>
-    `).join('');
+    container.innerHTML = registros.map(montarItemTimelineHtml).join('');
   } catch (err) {
     container.innerHTML = `<div class="estado-vazio"><p>Falha ao carregar a linha do tempo.</p></div>`;
   }
 }
+
+const EstadoHistorico = { offset: 0, limite: 30, tipoAcao: '' };
+
+function abrirHistoricoCompleto() {
+  abrirModal('modalHistorico');
+  const filtro = document.getElementById('historicoFiltroTipo');
+  if (filtro) filtro.value = '';
+  EstadoHistorico.tipoAcao = '';
+  carregarHistoricoCompleto({ reset: true });
+}
+
+async function carregarHistoricoCompleto({ reset = false } = {}) {
+  const container = document.getElementById('historicoLista');
+  const botaoMais = document.getElementById('botaoCarregarMaisHistorico');
+  if (!container) return;
+  if (reset) {
+    EstadoHistorico.offset = 0;
+    container.innerHTML = `<div class="estado-vazio"><p>Carregando histórico...</p></div>`;
+  }
+  try {
+    const params = new URLSearchParams({
+      periodo: 'todo',
+      limite: EstadoHistorico.limite,
+      offset: EstadoHistorico.offset
+    });
+    if (EstadoHistorico.tipoAcao) params.set('tipo_acao', EstadoHistorico.tipoAcao);
+    const resp = await chamarApi(`/auditoria?${params.toString()}`);
+    const registros = resp.dados || [];
+    const html = registros.map(montarItemTimelineHtml).join('');
+    if (reset) {
+      container.innerHTML = registros.length ? html : `<div class="estado-vazio"><p>Nenhuma ação encontrada.</p></div>`;
+    } else {
+      container.insertAdjacentHTML('beforeend', html);
+    }
+    EstadoHistorico.offset += registros.length;
+    if (botaoMais) botaoMais.style.display = resp.paginacao?.temMais ? '' : 'none';
+  } catch (err) {
+    if (reset) container.innerHTML = `<div class="estado-vazio"><p>Falha ao carregar o histórico.</p></div>`;
+  }
+}
+
+document.getElementById('historicoFiltroTipo')?.addEventListener('change', (evento) => {
+  EstadoHistorico.tipoAcao = evento.target.value;
+  carregarHistoricoCompleto({ reset: true });
+});
+
+document.getElementById('botaoCarregarMaisHistorico')?.addEventListener('click', () => {
+  carregarHistoricoCompleto({ reset: false });
+});
 
 function renderizarTabelaResumoPessoa(lista) {
   if (!lista.length) return `<div class="estado-vazio"><p>Nenhum dado disponível.</p></div>`;
