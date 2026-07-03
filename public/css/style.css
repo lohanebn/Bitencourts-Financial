@@ -394,6 +394,7 @@ button { font-family: var(--fonte-corpo); }
   box-shadow: var(--sombra);
   margin-bottom: 22px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .painel-cabecalho {
@@ -418,6 +419,16 @@ button { font-family: var(--fonte-corpo); }
   grid-template-columns: 1.4fr 1fr;
   gap: 18px;
   align-items: start;
+}
+
+/* Impede que colunas do grid/flex "estourem" a largura disponível por causa do
+   tamanho mínimo automático de conteúdo (ex.: tabelas largas) — sem isso, o
+   conteúdo pode vazar para fora da tela mesmo com overflow-x:hidden no body. */
+.grade-painéis-duas-colunas > div,
+.grade-cards,
+.app-shell,
+.conteudo-principal {
+  min-width: 0;
 }
 
 /* ---------- Botões ---------- */
@@ -541,7 +552,7 @@ button { font-family: var(--fonte-corpo); }
    TABELAS
    ===================================================================== */
 
-.tabela-wrapper { overflow-x: auto; }
+.tabela-wrapper { overflow-x: auto; min-width: 0; }
 
 table.tabela-padrao {
   width: 100%;
