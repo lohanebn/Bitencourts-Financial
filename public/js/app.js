@@ -776,10 +776,10 @@ function renderizarTabelaResumoPessoa(lista) {
       <tbody>
         ${lista.map(p => `
           <tr>
-            <td><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${p.cor}"></span>${escaparHtml(p.pessoa)}</span></td>
-            <td class="valor-positivo">${formatarMoeda(p.receita)}</td>
-            <td class="valor-negativo">${formatarMoeda(p.despesa)}</td>
-            <td class="${p.saldo >= 0 ? 'valor-positivo' : 'valor-negativo'}">${formatarMoeda(p.saldo)}</td>
+            <td data-label="Pessoa"><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${p.cor}"></span>${escaparHtml(p.pessoa)}</span></td>
+            <td data-label="Receita" class="valor-positivo">${formatarMoeda(p.receita)}</td>
+            <td data-label="Despesas" class="valor-negativo">${formatarMoeda(p.despesa)}</td>
+            <td data-label="Saldo" class="${p.saldo >= 0 ? 'valor-positivo' : 'valor-negativo'}">${formatarMoeda(p.saldo)}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -797,11 +797,11 @@ function renderizarTabelaProximasContas(lista) {
       <tbody>
         ${lista.map(c => `
           <tr>
-            <td>${formatarData(c.data_vencimento)} ${c.status === 'Atrasado' ? '<span class="badge badge-atrasado" style="margin-left:6px;">Atrasado</span>' : ''}</td>
-            <td>${escaparHtml(c.descricao)}</td>
-            <td>${escaparHtml(c.categoria)}</td>
-            <td class="valor-negativo">${formatarMoeda(c.valor)}</td>
-            <td><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${c.usuario_cor}"></span>${escaparHtml(c.usuario_nome)}</span></td>
+            <td data-label="Vencimento">${formatarData(c.data_vencimento)} ${c.status === 'Atrasado' ? '<span class="badge badge-atrasado" style="margin-left:6px;">Atrasado</span>' : ''}</td>
+            <td data-label="Conta">${escaparHtml(c.descricao)}</td>
+            <td data-label="Categoria">${escaparHtml(c.categoria)}</td>
+            <td data-label="Valor" class="valor-negativo">${formatarMoeda(c.valor)}</td>
+            <td data-label="Pessoa"><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${c.usuario_cor}"></span>${escaparHtml(c.usuario_nome)}</span></td>
           </tr>
         `).join('')}
       </tbody>
@@ -819,11 +819,11 @@ function renderizarTabelaParcelamentosAtivos(lista) {
       <tbody>
         ${lista.map(p => `
           <tr>
-            <td>${escaparHtml(p.descricao_compra)}</td>
-            <td>${p.parcela_atual}</td>
-            <td>${p.qtd_parcelas}</td>
-            <td>${formatarMoeda(p.valor_parcela)}</td>
-            <td class="valor-negativo">${formatarMoeda(p.valor_restante)}</td>
+            <td data-label="Compra">${escaparHtml(p.descricao_compra)}</td>
+            <td data-label="Parcela Atual">${p.parcela_atual}</td>
+            <td data-label="Total Parcelas">${p.qtd_parcelas}</td>
+            <td data-label="Valor Parcela">${formatarMoeda(p.valor_parcela)}</td>
+            <td data-label="Valor Restante" class="valor-negativo">${formatarMoeda(p.valor_restante)}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -922,11 +922,11 @@ async function carregarTabelaReceitas() {
       <tbody>
         ${lista.map(r => `
           <tr>
-            <td>${formatarData(r.data_recebimento)}</td>
-            <td>${escaparHtml(r.descricao)}</td>
-            <td>${escaparHtml(r.categoria)}</td>
-            <td><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${r.usuario_cor}"></span>${escaparHtml(r.usuario_nome)}</span></td>
-            <td class="valor-positivo">${formatarMoeda(r.valor)}</td>
+            <td data-label="Data">${formatarData(r.data_recebimento)}</td>
+            <td data-label="Descrição">${escaparHtml(r.descricao)}</td>
+            <td data-label="Categoria">${escaparHtml(r.categoria)}</td>
+            <td data-label="Pessoa"><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${r.usuario_cor}"></span>${escaparHtml(r.usuario_nome)}</span></td>
+            <td data-label="Valor" class="valor-positivo">${formatarMoeda(r.valor)}</td>
             <td class="celula-acoes">
               <button class="botao-icone" data-editar-receita="${r.id}" title="Editar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -1094,14 +1094,14 @@ async function carregarTabelaDespesas() {
             : `<span class="badge badge-variavel" style="background:#F1ECFB;color:#7C3AED;">${d.tipo}</span>`;
           return `
           <tr>
-            <td><input type="checkbox" class="seletor-despesa" value="${d.id}" aria-label="Selecionar ${escaparHtml(d.descricao)}"></td>
-            <td>${formatarData(d.data_vencimento)}</td>
-            <td>${escaparHtml(d.descricao)}${d.periodicidade ? `<br><small style="color:var(--cor-texto-fraco)">${d.periodicidade}</small>` : ''}</td>
-            <td>${escaparHtml(d.categoria)}</td>
-            <td>${origemBadge}</td>
-            <td><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${d.usuario_cor}"></span>${escaparHtml(d.usuario_nome)}</span></td>
-            <td class="valor-negativo">${formatarMoeda(d.valor)}</td>
-            <td><span class="badge ${corDoStatus(d.status)}">${d.status}</span></td>
+            <td data-label="Selecionar"><input type="checkbox" class="seletor-despesa" value="${d.id}" aria-label="Selecionar ${escaparHtml(d.descricao)}"></td>
+            <td data-label="Vencimento">${formatarData(d.data_vencimento)}</td>
+            <td data-label="Descrição">${escaparHtml(d.descricao)}${d.periodicidade ? `<br><small style="color:var(--cor-texto-fraco)">${d.periodicidade}</small>` : ''}</td>
+            <td data-label="Categoria">${escaparHtml(d.categoria)}</td>
+            <td data-label="Origem">${origemBadge}</td>
+            <td data-label="Responsável"><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${d.usuario_cor}"></span>${escaparHtml(d.usuario_nome)}</span></td>
+            <td data-label="Valor" class="valor-negativo">${formatarMoeda(d.valor)}</td>
+            <td data-label="Status"><span class="badge ${corDoStatus(d.status)}">${d.status}</span></td>
             <td class="celula-acoes">
               <button class="botao-icone" data-editar-despesa="${d.id}" title="Editar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -1390,13 +1390,13 @@ async function carregarTabelaCartoes() {
       <tbody>
         ${Estado.cartoes.map(c => `
           <tr>
-            <td><button type="button" class="botao-fatura-link" data-fatura-id="${c.id}" data-fatura-nome="${escaparHtml(c.nome_cartao)}">${escaparHtml(c.nome_cartao)}</button></td>
-            <td>${escaparHtml(c.banco)}</td>
-            <td><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${c.usuario_cor}"></span>${escaparHtml(c.usuario_nome)}</span></td>
-            <td>${formatarMoeda(c.limite)}</td>
-            <td>Dia ${c.dia_fechamento}</td>
-            <td>Dia ${c.dia_vencimento}</td>
-            <td class="${Number(c.total_periodo)>0?'valor-negativo':''}">
+            <td data-label="Cartão"><button type="button" class="botao-fatura-link" data-fatura-id="${c.id}" data-fatura-nome="${escaparHtml(c.nome_cartao)}">${escaparHtml(c.nome_cartao)}</button></td>
+            <td data-label="Banco">${escaparHtml(c.banco)}</td>
+            <td data-label="Responsável"><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${c.usuario_cor}"></span>${escaparHtml(c.usuario_nome)}</span></td>
+            <td data-label="Limite">${formatarMoeda(c.limite)}</td>
+            <td data-label="Fechamento">Dia ${c.dia_fechamento}</td>
+            <td data-label="Vencimento">Dia ${c.dia_vencimento}</td>
+            <td data-label="A vencer no período" class="${Number(c.total_periodo)>0?'valor-negativo':''}">
               ${Number(c.total_periodo)>0
                 ? `<button type="button" class="botao-fatura-link valor-negativo" data-fatura-id="${c.id}" data-fatura-nome="${escaparHtml(c.nome_cartao)}">${formatarMoeda(c.total_periodo)}</button>`
                 : '—'}
@@ -1491,18 +1491,18 @@ async function _carregarFaturaCorpo(cartaoId) {
       </thead>
       <tbody>
         ${parcelas.map((i, idx) => `<tr>
-          <td class="fatura-col-data">${formatarData(i.data_compra || i.data_vencimento)}</td>
-          <td style="text-align:center;color:var(--cor-texto-suave)">${i.numero_parcela}/${i.total_parcelas}</td>
-          <td>${escaparHtml(i.descricao_compra)}</td>
-          <td>${escaparHtml(i.categoria || 'Cartão')}</td>
-          <td style="text-align:right" class="valor-negativo">${formatarMoeda(i.valor)}</td>
+          <td data-label="Data Compra" class="fatura-col-data">${formatarData(i.data_compra || i.data_vencimento)}</td>
+          <td data-label="Parcela" style="text-align:center;color:var(--cor-texto-suave)">${i.numero_parcela}/${i.total_parcelas}</td>
+          <td data-label="Descrição">${escaparHtml(i.descricao_compra)}</td>
+          <td data-label="Categoria">${escaparHtml(i.categoria || 'Cartão')}</td>
+          <td data-label="Valor" style="text-align:right" class="valor-negativo">${formatarMoeda(i.valor)}</td>
           <td><button class="botao-icone fatura-editar-btn" data-idx="${idx}" title="Editar">✎</button></td>
         </tr>`).join('')}
       </tbody>
       <tfoot>
         <tr class="fatura-rodape-total">
           <td colspan="5">Total da Fatura</td>
-          <td class="valor-negativo">${formatarMoeda(totalGeral)}</td>
+          <td data-label="Total" class="valor-negativo">${formatarMoeda(totalGeral)}</td>
         </tr>
       </tfoot>
     </table>
@@ -1561,13 +1561,13 @@ function _renderizarTabelaParcelamentosHtml(lista) {
       const icone=ICONE_TIPO[p.tipo_obrigacao]||'📦';
       const resp=p.responsavel_texto||p.nome_cartao||'—';
       return `<tr>
-        <td>${escaparHtml(p.descricao_compra)}</td>
-        <td><span title="${escaparHtml(p.tipo_obrigacao)}">${icone} ${escaparHtml(p.tipo_obrigacao)}</span></td>
-        <td>${escaparHtml(resp)}</td>
-        <td><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${p.usuario_cor}"></span>${escaparHtml(p.usuario_nome)}</span></td>
-        <td><div class="progresso-parcela"><div class="barra-fundo"><div class="barra-preenchimento" style="width:${pct}%"></div></div><span class="texto-progresso">${p.parcelas_pagas}/${p.qtd_parcelas}</span></div></td>
-        <td>${formatarMoeda(p.valor_parcela)}</td>
-        <td class="valor-negativo">${formatarMoeda(p.valor_restante)}</td>
+        <td data-label="Descrição">${escaparHtml(p.descricao_compra)}</td>
+        <td data-label="Origem"><span title="${escaparHtml(p.tipo_obrigacao)}">${icone} ${escaparHtml(p.tipo_obrigacao)}</span></td>
+        <td data-label="Responsável">${escaparHtml(resp)}</td>
+        <td data-label="Pessoa"><span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${p.usuario_cor}"></span>${escaparHtml(p.usuario_nome)}</span></td>
+        <td data-label="Progresso"><div class="progresso-parcela"><div class="barra-fundo"><div class="barra-preenchimento" style="width:${pct}%"></div></div><span class="texto-progresso">${p.parcelas_pagas}/${p.qtd_parcelas}</span></div></td>
+        <td data-label="Valor Parcela">${formatarMoeda(p.valor_parcela)}</td>
+        <td data-label="Restante" class="valor-negativo">${formatarMoeda(p.valor_restante)}</td>
         <td class="celula-acoes">
           <button class="botao-icone" data-editar-parcelamento="${p.id}" title="Editar">✎</button>
           <button class="botao-icone" data-excluir-parcelamento="${p.id}" title="Excluir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
@@ -1862,13 +1862,13 @@ async function carregarPagamentos() {
   alvo.innerHTML=!lista.length
     ?'<div class="estado-vazio"><p>Nenhuma obrigação pendente no período.</p></div>'
     :`<div class="tabela-wrapper"><table class="tabela-padrao"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Origem</th><th>Responsável</th><th>Valor Original</th><th>Valor Pago</th><th>Saldo Aberto</th><th></th></tr></thead><tbody>${lista.map(i=>`<tr>
-      <td>${formatarData(i.data_vencimento)}</td>
-      <td>${escaparHtml(i.descricao)}${i.numero_parcela?` (${i.numero_parcela}/${i.total_parcelas})`:''}</td>
-      <td>${escaparHtml(i.tipo)}</td>
-      <td>${escaparHtml(i.usuario_nome||'Casal')}</td>
-      <td>${formatarMoeda(i.valor)}</td>
-      <td>${formatarMoeda(i.valor_pago)}</td>
-      <td class="valor-negativo">${formatarMoeda(i.saldo_pendente)}</td>
+      <td data-label="Vencimento">${formatarData(i.data_vencimento)}</td>
+      <td data-label="Descrição">${escaparHtml(i.descricao)}${i.numero_parcela?` (${i.numero_parcela}/${i.total_parcelas})`:''}</td>
+      <td data-label="Origem">${escaparHtml(i.tipo)}</td>
+      <td data-label="Responsável">${escaparHtml(i.usuario_nome||'Casal')}</td>
+      <td data-label="Valor Original">${formatarMoeda(i.valor)}</td>
+      <td data-label="Valor Pago">${formatarMoeda(i.valor_pago)}</td>
+      <td data-label="Saldo Aberto" class="valor-negativo">${formatarMoeda(i.saldo_pendente)}</td>
       <td><button class="botao botao-primario" data-pagar-tipo="${i.origem_tipo}" data-pagar-id="${i.origem_id}" data-pagar-valor="${i.saldo_pendente}" data-pagar-venc="${String(i.data_vencimento).split('T')[0]}">Registrar</button></td>
     </tr>`).join('')}</tbody></table></div>`;
   alvo.querySelectorAll('[data-pagar-id]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1903,11 +1903,11 @@ async function carregarBaixas() {
   hist.innerHTML=!historico.length
     ?'<div class="estado-vazio"><p>Nenhuma baixa no período.</p></div>'
     :`<div class="tabela-wrapper"><table class="tabela-padrao"><thead><tr><th>Data Pagamento</th><th>Descrição</th><th>Origem</th><th>Valor Pago</th><th>Responsável</th><th></th></tr></thead><tbody>${historico.map(p=>`<tr>
-      <td>${formatarData(p.data_pagamento)}</td>
-      <td>${escaparHtml(p.descricao)}</td>
-      <td>${escaparHtml(p.origem)}</td>
-      <td class="valor-positivo">${formatarMoeda(p.valor_pago)}</td>
-      <td>${escaparHtml(p.responsavel||'-')}</td>
+      <td data-label="Data Pagamento">${formatarData(p.data_pagamento)}</td>
+      <td data-label="Descrição">${escaparHtml(p.descricao)}</td>
+      <td data-label="Origem">${escaparHtml(p.origem)}</td>
+      <td data-label="Valor Pago" class="valor-positivo">${formatarMoeda(p.valor_pago)}</td>
+      <td data-label="Responsável">${escaparHtml(p.responsavel||'-')}</td>
       <td><button class="botao botao-perigo" data-estornar-id="${p.id}" title="Excluir Baixa" style="font-size:12px;padding:4px 10px;">Excluir</button></td>
     </tr>`).join('')}</tbody></table></div>`;
   hist.querySelectorAll('[data-estornar-id]').forEach(btn=>btn.addEventListener('click',()=>estornarBaixa(btn.dataset.estornarId)));

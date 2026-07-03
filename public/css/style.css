@@ -1345,6 +1345,75 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   .grupo-form textarea {
     font-size: 16px;
   }
+
+  /* ---------------------------------------------------------------------
+     TABELAS EM MODO "CARD": cada linha vira um cartão empilhado, com o
+     nome da coluna ao lado do valor. Elimina a necessidade de arrastar
+     a tabela para o lado no celular — tudo cabe na largura da tela.
+     --------------------------------------------------------------------- */
+  .tabela-wrapper { overflow-x: visible; }
+
+  table.tabela-padrao thead { display: none; }
+
+  table.tabela-padrao,
+  table.tabela-padrao tbody,
+  table.tabela-padrao tfoot,
+  table.tabela-padrao tr {
+    display: block;
+    width: 100%;
+  }
+
+  table.tabela-padrao tbody tr,
+  table.tabela-padrao tfoot tr {
+    background: var(--cor-superficie);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-pequeno);
+    padding: 4px 16px;
+    margin-bottom: 10px;
+  }
+
+  table.tabela-padrao tbody tr:last-child,
+  table.tabela-padrao tfoot tr:last-child {
+    margin-bottom: 0;
+  }
+
+  table.tabela-padrao tbody tr:hover { background: var(--cor-superficie); }
+
+  table.tabela-padrao td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--cor-borda);
+    text-align: right;
+    white-space: normal;
+  }
+
+  table.tabela-padrao td:last-child { border-bottom: none; }
+
+  table.tabela-padrao td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--cor-texto-suave);
+    text-align: left;
+  }
+
+  /* Colunas de ação (sem rótulo, com 2 botões) ficam alinhadas à direita,
+     sem o espaçamento "space-between" pensado para rótulo + valor. */
+  table.tabela-padrao td.celula-acoes {
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  table.tabela-padrao tr.fatura-rodape-total td {
+    border-top: none;
+  }
 }
 
 @media (max-width: 640px) {
