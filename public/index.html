@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitencourt's Financial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="login-shell" id="loginShell">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="icone-marca">B</div>
+        <div>
+          <h2>Bitencourt's Financial</h2>
+          <p>Entre com suas credenciais para continuar.</p>
+        </div>
+      </div>
+      <div id="loginMensagem" class="login-mensagem info">Faça login para acessar o sistema.</div>
+      <form id="formLogin" class="login-form">
+        <div class="grupo-form">
+          <label for="loginUsuario">Usuário</label>
+          <input class="campo-input" id="loginUsuario" name="usuario" type="text" required>
+        </div>
+        <div class="grupo-form">
+          <label for="loginSenha">Senha</label>
+          <input class="campo-input" id="loginSenha" name="senha" type="password" required>
+        </div>
+        <button type="submit" class="botao botao-primario" style="width:100%;">Entrar</button>
+      </form>
+      <form id="formTrocaSenha" class="login-form" style="display:none;">
+        <div class="grupo-form">
+          <label for="trocaUsuario">Usuário</label>
+          <input class="campo-input" id="trocaUsuario" name="usuario" type="text" required>
+        </div>
+        <div class="grupo-form">
+          <label for="trocaSenhaAtual">Senha atual</label>
+          <input class="campo-input" id="trocaSenhaAtual" name="senhaAtual" type="password" required>
+        </div>
+        <div class="grupo-form">
+          <label for="trocaNovaSenha">Nova senha</label>
+          <input class="campo-input" id="trocaNovaSenha" name="novaSenha" type="password" required>
+        </div>
+        <div class="grupo-form">
+          <label for="trocaConfirmarSenha">Confirmar nova senha</label>
+          <input class="campo-input" id="trocaConfirmarSenha" name="confirmarSenha" type="password" required>
+        </div>
+        <button type="submit" class="botao botao-primario" style="width:100%;">Salvar nova senha</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell" style="display:none;">
+
+    <!-- ================= MENU LATERAL ================= -->
+    <aside class="menu-lateral" id="menuLateral">
+      <div class="menu-marca">
+        <div class="icone-marca">B</div>
+        <div class="texto-marca">
+          <strong>Bitencourt's</strong>
+          <span>Financial</span>
+        </div>
+      </div>
+
+      <nav class="menu-nav" id="menuNav">
+        <button class="menu-item" data-pagina="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          Dashboard
+        </button>
+        <button class="menu-item" data-pagina="receitas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+          Receitas
+        </button>
+        <button class="menu-item" data-pagina="despesas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+          Despesas
+        </button>
+        <button class="menu-item" data-pagina="cartoes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+          Cartões e Parcelamentos
+        </button>
+        <button class="menu-item" data-pagina="projecao">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          Projeção Financeira
+        </button>
+        <button class="menu-item" data-pagina="pagamentos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"></path><path d="M8 12l3 3 5-6"></path></svg>
+          Pagamentos
+        </button>
+        <button class="menu-item" data-pagina="configuracoes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Configurações
+        </button>
+      </nav>
+
+      <div class="menu-rodape">
+        <div class="avatares-mini" id="avataresRodape"></div>
+        <span>Lohane &amp; Letícia</span>
+      </div>
+    </aside>
+
+    <div class="overlay-menu" id="overlayMenu"></div>
+
+    <!-- ================= CONTEÚDO PRINCIPAL ================= -->
+    <main class="conteudo-principal">
+      <header class="topo-pagina">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <button class="botao-menu-mobile" id="botaoMenuMobile" aria-label="Abrir menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div>
+            <h1 id="tituloPagina">Dashboard</h1>
+            <div class="subtitulo-pagina" id="subtituloPagina">Visão geral das finanças do mês</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div id="areaAcaoTopo"></div>
+          <button class="botao botao-secundario" id="botaoLogout" type="button">Sair</button>
+        </div>
+      </header>
+
+      <div class="area-pagina" id="areaPagina">
+        <div class="spinner-carregando"><div class="girando"></div> Carregando...</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= MODAIS ================= -->
+
+  <!-- Modal Receita -->
+  <div class="fundo-modal" id="modalReceita">
+    <div class="caixa-modal">
+      <div class="modal-cabecalho">
+        <h3 id="tituloModalReceita">Nova Receita</h3>
+        <button class="botao-icone" data-fechar-modal="modalReceita">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <form id="formReceita">
+        <div class="modal-corpo">
+          <input type="hidden" id="receitaId">
+          <div class="grupo-form">
+            <label>Pessoa</label>
+            <select class="campo-select" id="receitaUsuario" required></select>
+          </div>
+          <div class="grupo-form">
+            <label>Descrição</label>
+            <input class="campo-input" type="text" id="receitaDescricao" placeholder="Ex: Salário Mensal" required>
+          </div>
+          <div class="linha-form">
+            <div class="grupo-form">
+              <label>Categoria</label>
+              <select class="campo-select" id="receitaCategoria" required>
+                <option>Salário</option>
+                <option>Freelance</option>
+                <option>Extra</option>
+                <option>Investimento</option>
+                <option>Outros</option>
+              </select>
+            </div>
+            <div class="grupo-form">
+              <label>Valor (R$)</label>
+              <input class="campo-input" type="number" step="0.01" min="0" id="receitaValor" placeholder="0,00" required>
+            </div>
+          </div>
+          <div class="grupo-form">
+            <label>Data de Recebimento</label>
+            <input class="campo-input" type="date" id="receitaData" required>
+          </div>
+          <div class="grupo-form">
+            <label>Observação (opcional)</label>
+            <textarea id="receitaObservacao" placeholder="Alguma observação..."></textarea>
+          </div>
+        </div>
+        <div class="modal-rodape">
+          <button type="button" class="botao botao-secundario" data-fechar-modal="modalReceita">Cancelar</button>
+          <button type="submit" class="botao botao-primario">Salvar Receita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Despesa -->
+  <div class="fundo-modal" id="modalDespesa">
+    <div class="caixa-modal">
+      <div class="modal-cabecalho">
+        <h3 id="tituloModalDespesa">Nova Despesa</h3>
+        <button class="botao-icone" data-fechar-modal="modalDespesa">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <form id="formDespesa">
+        <div class="modal-corpo">
+          <input type="hidden" id="despesaId">
+          <div class="grupo-form">
+            <label>Responsável</label>
+            <select class="campo-select" id="despesaUsuario" required></select>
+          </div>
+          <div class="grupo-form">
+            <label>Descrição</label>
+            <input class="campo-input" type="text" id="despesaDescricao" placeholder="Ex: Plano de Saúde" required>
+          </div>
+          <div class="linha-form">
+            <div class="grupo-form">
+              <label>Categoria</label>
+              <div class="controle-categoria">
+                <select class="campo-select" id="despesaCategoria" title="Categoria" required>
+                  <option>Moradia</option><option>Energia</option><option>Água</option><option>Internet</option>
+                  <option>Mercado</option><option>Transporte</option><option>Saúde</option><option>Educação</option>
+                  <option>Lazer</option><option>Cartão</option><option>Outros</option>
+                </select>
+                <button type="button" id="botaoNovaCategoria" class="botao botao-secundario botao-categoria" title="Nova categoria">+</button>
+              </div>
+              <div id="novaCategoriaSugestao" class="nova-categoria-sugestao" style="display:none">
+                <div class="nova-categoria-linha">
+                  <input class="campo-input" type="text" id="novaCategoriaTexto" placeholder="Nome da nova categoria">
+                  <button type="button" id="botaoConfirmarNovaCategoria" class="botao botao-primario">Adicionar</button>
+                </div>
+              </div>
+            </div>
+            <div class="grupo-form">
+              <label>Tipo</label>
+              <select class="campo-select" id="despesaTipo" required onchange="atualizarCamposDespesa()">
+                <option>Fixa</option>
+                <option>Variável</option>
+              </select>
+            </div>
+          </div>
+          <div class="linha-form">
+            <div class="grupo-form">
+              <label>Valor (R$)</label>
+              <input class="campo-input" type="number" step="0.01" min="0" id="despesaValor" placeholder="0,00" required>
+            </div>
+            <div class="grupo-form">
+              <label>Status</label>
+              <select class="campo-select" id="despesaStatus" required>
+                <option>Pendente</option><option>Pago</option><option>Atrasado</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Campos para Despesa VARIÁVEL ou edição de Fixa simples -->
+          <div id="grupoDataVencimento">
+            <div class="grupo-form">
+              <label>Data de Vencimento</label>
+              <input class="campo-input" type="date" id="despesaDataVencimento">
+            </div>
+          </div>
+
+          <!-- Campos para Despesa FIXA RECORRENTE (exibidos dinamicamente) -->
+          <div id="grupoRecorrencia" style="display:none;">
+            <div style="background:var(--cor-azul-suave);border-radius:var(--raio-pequeno);padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:var(--cor-azul-escuro);">
+              As próximas ocorrências serão geradas automaticamente com base nas configurações abaixo.
+            </div>
+            <div class="linha-form">
+              <div class="grupo-form">
+                <label>Dia do Vencimento</label>
+                <input class="campo-input" type="number" min="1" max="31" id="despesaDiaVencimento" placeholder="Ex: 10">
+              </div>
+              <div class="grupo-form">
+                <label>Periodicidade</label>
+                <select class="campo-select" id="despesaPeriodicidade">
+                  <option>Mensal</option><option>Bimestral</option><option>Trimestral</option>
+                  <option>Semestral</option><option>Anual</option>
+                </select>
+              </div>
+            </div>
+            <div class="grupo-form">
+              <label>Duração</label>
+              <select class="campo-select" id="despesaDuracaoTipo" onchange="atualizarCampoDuracao()">
+                <option value="Indeterminada">Indeterminada (gera 12 meses por vez)</option>
+                <option value="Quantidade">Quantidade de ocorrências</option>
+              </select>
+            </div>
+            <div id="grupoQtdOcorrencias" class="grupo-form" style="display:none;">
+              <label>Quantidade de Ocorrências</label>
+              <input class="campo-input" type="number" min="1" id="despesaQtdOcorrencias" placeholder="Ex: 12">
+            </div>
+          </div>
+
+          <div class="grupo-form">
+            <label>Observação (opcional)</label>
+            <textarea id="despesaObservacao" placeholder="Alguma observação..."></textarea>
+          </div>
+        </div>
+        <div class="modal-rodape">
+          <button type="button" class="botao botao-secundario" data-fechar-modal="modalDespesa">Cancelar</button>
+          <button type="submit" class="botao botao-primario">Salvar Despesa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Cartão -->
+  <div class="fundo-modal" id="modalCartao">
+    <div class="caixa-modal">
+      <div class="modal-cabecalho">
+        <h3>Novo Cartão</h3>
+        <button class="botao-icone" data-fechar-modal="modalCartao">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <form id="formCartao">
+        <div class="modal-corpo">
+          <input type="hidden" id="cartaoId">
+          <div class="grupo-form">
+            <label>Responsável</label>
+            <select class="campo-select" id="cartaoUsuario" required></select>
+          </div>
+          <div class="linha-form">
+            <div class="grupo-form">
+              <label>Nome do Cartão</label>
+              <input class="campo-input" type="text" id="cartaoNome" placeholder="Ex: Cartão Gold" required>
+            </div>
+            <div class="grupo-form">
+              <label>Banco</label>
+              <input class="campo-input" type="text" id="cartaoBanco" placeholder="Ex: Itaú" required>
+            </div>
+          </div>
+          <div class="grupo-form">
+            <label>Limite (R$)</label>
+            <input class="campo-input" type="number" step="0.01" min="0" id="cartaoLimite" placeholder="0,00" required>
+          </div>
+          <div class="linha-form">
+            <div class="grupo-form">
+              <label>Dia de Fechamento</label>
+              <input class="campo-input" type="number" min="1" max="31" id="cartaoFechamento" placeholder="Ex: 20" required>
+            </div>
+            <div class="grupo-form">
+              <label>Dia de Vencimento</label>
+              <input class="campo-input" type="number" min="1" max="31" id="cartaoVencimento" placeholder="Ex: 28" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-rodape">
+          <button type="button" class="botao botao-secundario" data-fechar-modal="modalCartao">Cancelar</button>
+          <button type="submit" class="botao botao-primario">Salvar Cartão</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Parcelamento / Obrigação Parcelada -->
+  <div class="fundo-modal" id="modalParcelamento">
+    <div class="caixa-modal" style="max-width:520px;">
+      <div class="modal-cabecalho">
+        <h3>Nova Obrigação Parcelada</h3>
+        <button class="botao-icone" data-fechar-modal="modalParcelamento">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <form id="formParcelamento">
+        <div class="modal-corpo">
+          <input type="hidden" id="parcelamentoId">
+
+          <!-- Tipo da Obrigação — controla quais campos aparecem -->
+          <div class="grupo-form">
+            <label>Tipo da Obrigação</label>
+            <select class="campo-select" id="parcelamentoTipoObrigacao" required onchange="atualizarCamposParcelamento()">
+              <option>Cartão de Crédito</option>
+              <option>Empréstimo</option>
+              <option>Financiamento</option>
+              <option>Consórcio</option>
+              <option>Boleto Parcelado</option>
+              <option>Acordo de Dívida</option>
+              <option>Outro</option>
+            </select>
+          </div>
+
+          <div class="linha-form">
+            <div class="grupo-form">
+              <label>Pessoa</label>
+              <select class="campo-select" id="parcelamentoUsuario" required></select>
+            </div>
+            <!-- Cartão: só para Cartão de Crédito -->
+            <div class="grupo-form" id="grupoParcelamentoCartao">
+              <label>Cartão</label>
+              <select class="campo-select" id="parcelamentoCartao"></select>
+            </div>
+          </div>
+
+          <!-- Responsável: instituição / administradora / fornecedor conforme tipo -->
+          <div class="grupo-form" id="grupoParcelamentoResponsavel" style="display:none;">
+            <label>Responsável</label>
+            <input class="campo-input" type="text" id="parcelamentoResponsavel" placeholder="Ex: Banco Bradesco">
+          </div>
+
+          <div class="grupo-form">
+            <label>Descrição</label>
+            <input class="campo-input" type="text" id="parcelamentoDescricao" placeholder="Ex: Notebook Dell" required>
+          </div>
+
+          <div class="grupo-form">
+            <label>Categoria</label>
+            <div class="controle-categoria">
+              <select class="campo-select" id="parcelamentoCategoria" required></select>
+              <button type="button" id="botaoNovaCategoriaParcelamento" class="botao botao-secundario botao-categoria" title="Nova categoria">+</button>
+            </div>
+            <div id="novaCategoriaParcelamentoSugestao" class="nova-categoria-sugestao" style="display:none">
+              <div class="nova-categoria-linha">
+                <input class="campo-input" type="text" id="novaCategoriaParcelamentoTexto" placeholder="Nome da nova categoria">
+                <button type="button" id="botaoConfirmarNovaCategoriaParcelamento" class="botao botao-primario">Adicionar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="linha-form">
+            <!-- Valor Total: Cartão de Crédito e Boleto Parcelado -->
+            <div class="grupo-form" id="grupoParcelamentoValorTotal">
+              <label>Valor Total (R$)</label>
+              <input class="campo-input" type="number" step="0.01" min="0"
+                     id="parcelamentoValorTotalInput" placeholder="0,00"
+                     oninput="calcularValorParcelaPreview()">
+            </div>
+            <!-- Valor da Parcela: Empréstimo, Financiamento, Consórcio, etc. -->
+            <div class="grupo-form" id="grupoParcelamentoValorParcela" style="display:none;">
+              <label>Valor da Parcela (R$)</label>
+              <input class="campo-input" type="number" step="0.01" min="0"
+                     id="parcelamentoValorParcelaInput" placeholder="0,00">
+            </div>
+            <div class="grupo-form">
+              <label>Quantidade de Parcelas</label>
+              <input class="campo-input" type="number" min="1" max="600"
+                     id="parcelamentoQtdParcelas" placeholder="Ex: 12" required
+                     oninput="calcularValorParcelaPreview()">
+            </div>
+          </div>
+
+          <!-- Preview do valor calculado automaticamente (Cartão / Boleto) -->
+          <div class="grupo-form" id="grupoParcelamentoValorCalc">
+            <label>Valor de Cada Parcela (calculado)</label>
+            <input class="campo-input" type="text" id="parcelamentoValorCalcPreview" disabled placeholder="Calculado automaticamente">
+          </div>
+
+          <!-- Data da Compra: só para Cartão de Crédito -->
+          <div class="grupo-form" id="grupoParcelamentoDataCompra">
+            <label>Data da Compra</label>
+            <input class="campo-input" type="date" id="parcelamentoDataCompra">
+          </div>
+
+          <!-- Primeiro Vencimento: para todos os outros tipos -->
+          <div class="grupo-form" id="grupoParcelamentoPrimeiroVencimento" style="display:none;">
+            <label>Data do Primeiro Vencimento</label>
+            <input class="campo-input" type="date" id="parcelamentoPrimeiroVencimento">
+          </div>
+
+        </div>
+        <div class="modal-rodape">
+          <button type="button" class="botao botao-secundario" data-fechar-modal="modalParcelamento">Cancelar</button>
+          <button type="submit" class="botao botao-primario">Gerar Parcelas Automaticamente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="fundo-modal" id="modalPagamento">
+    <div class="caixa-modal" style="max-width:420px;">
+      <div class="modal-cabecalho"><h3>Registrar Pagamento</h3><button class="botao-icone" data-fechar-modal="modalPagamento">×</button></div>
+      <form id="formPagamento"><div class="modal-corpo">
+        <input type="hidden" id="pagamentoOrigemTipo"><input type="hidden" id="pagamentoOrigemId">
+        <div class="grupo-form"><label>Data de Pagamento</label><input class="campo-input" type="date" id="pagamentoData" required></div>
+        <div class="grupo-form"><label>Valor Pago</label><input class="campo-input" type="number" min="0.01" step="0.01" id="pagamentoValor" required></div>
+      </div><div class="modal-rodape"><button type="button" class="botao botao-secundario" data-fechar-modal="modalPagamento">Cancelar</button><button type="submit" class="botao botao-primario">Confirmar</button></div></form>
+    </div>
+  </div>
+
+  <!-- Modal Confirmação de Exclusão -->
+  <div class="fundo-modal" id="modalConfirmar">
+    <div class="caixa-modal" style="max-width:380px;">
+      <div class="modal-cabecalho">
+        <h3>Confirmar exclusão</h3>
+        <button class="botao-icone" data-fechar-modal="modalConfirmar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-corpo">
+        <p id="textoConfirmacao" style="margin:0; font-size:14px; color:var(--cor-texto-suave);">Tem certeza que deseja excluir este item? Essa ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="botao botao-secundario" data-fechar-modal="modalConfirmar">Cancelar</button>
+        <button type="button" class="botao botao-perigo" id="botaoConfirmarExclusao">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalhamento da Fatura -->
+  <div class="fundo-modal" id="modalFatura">
+    <div class="caixa-modal" style="max-width:720px;width:95vw;">
+      <div class="modal-cabecalho">
+        <div>
+          <h3 id="modalFaturaTitulo">Detalhamento da Fatura</h3>
+          <p id="modalFaturaTotal" style="margin:4px 0 0;font-size:13px;font-weight:600;color:var(--cor-vermelho)"></p>
+        </div>
+        <button type="button" class="botao-icone" data-fechar-modal="modalFatura" title="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-corpo" id="modalFaturaCorpo" style="max-height:72vh;overflow-y:auto;padding-top:0">
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Lançamento da Fatura -->
+  <div class="fundo-modal" id="modalEditarLancamento">
+    <div class="caixa-modal" style="max-width:440px;width:95vw;">
+      <div class="modal-cabecalho">
+        <h3>Editar Lançamento</h3>
+        <button type="button" class="botao-icone" data-fechar-modal="modalEditarLancamento" title="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <form id="formEditarLancamento">
+        <input type="hidden" id="editLancParcelamentoId">
+        <input type="hidden" id="editLancParcelaId">
+        <div class="modal-corpo">
+          <div class="grupo-form">
+            <label for="editLancDescricao">Descrição</label>
+            <input class="campo-input" type="text" id="editLancDescricao" required>
+          </div>
+          <div class="grupo-form">
+            <label for="editLancCategoria">Categoria</label>
+            <div class="controle-categoria">
+              <select class="campo-select" id="editLancCategoria" required></select>
+              <button type="button" id="botaoNovaCategoriaEdicaoLancamento" class="botao botao-secundario botao-categoria" title="Nova categoria">+</button>
+            </div>
+            <div id="novaCategoriaEdicaoLancamentoSugestao" class="nova-categoria-sugestao" style="display:none">
+              <div class="nova-categoria-linha">
+                <input class="campo-input" type="text" id="novaCategoriaEdicaoLancamentoTexto" placeholder="Nome da nova categoria">
+                <button type="button" id="botaoConfirmarNovaCategoriaEdicaoLancamento" class="botao botao-primario">Adicionar</button>
+              </div>
+            </div>
+          </div>
+          <div class="grupo-form">
+            <label for="editLancDataCompra">Data da Compra</label>
+            <input class="campo-input" type="date" id="editLancDataCompra">
+          </div>
+          <div class="grupo-form">
+            <label for="editLancValor">Valor desta parcela (R$)</label>
+            <input class="campo-input" type="number" step="0.01" min="0.01" id="editLancValor">
+          </div>
+        </div>
+        <div class="modal-rodape">
+          <button type="button" class="botao botao-secundario" data-fechar-modal="modalEditarLancamento">Cancelar</button>
+          <button type="submit" class="botao botao-primario">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
