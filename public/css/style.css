@@ -41,6 +41,11 @@
 
 * { box-sizing: border-box; }
 
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--fonte-corpo);
@@ -277,6 +282,8 @@ button { font-family: var(--fonte-corpo); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
   padding: 22px 32px;
   background: var(--cor-superficie);
   border-bottom: 1px solid var(--cor-borda);
@@ -285,12 +292,38 @@ button { font-family: var(--fonte-corpo); }
   z-index: 50;
 }
 
+.cabecalho-titulo-bloco {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.cabecalho-titulo-bloco h1 {
+  overflow-wrap: anywhere;
+}
+
+.cabecalho-acoes-bloco {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.linha-acoes-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .botao-menu-mobile {
   display: none;
   background: none;
   border: none;
   cursor: pointer;
   padding: 6px;
+  flex-shrink: 0;
 }
 
 .topo-pagina h1 {
@@ -620,6 +653,30 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   padding: 16px 22px;
   border-bottom: 1px solid var(--cor-borda);
   background: #FBFCFE;
+}
+
+/* Campos de período (mês, ano, personalizado) exibidos/ocultados dinamicamente
+   conforme o tipo de filtro selecionado, com uma transição suave. */
+.campo-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 1;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.campo-periodo-oculto {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+
+.campo-periodo-duplo {
+  flex-wrap: wrap;
+}
+
+.campo-periodo-duplo .campo-input {
+  flex: 1 1 130px;
 }
 
 .campo-select, .campo-input {
@@ -1102,15 +1159,6 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
 }
 
 
-@media (max-width: 1024px) {
-  .grade-cards {
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  }
-  .grade-painéis-duas-colunas {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 720px) {
   .topo-pagina,
   .area-pagina,
@@ -1245,8 +1293,51 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   .conteudo-principal { margin-left: 0; }
   .botao-menu-mobile { display: inline-flex; }
   .linha-form { grid-template-columns: 1fr; }
-  .topo-pagina { padding: 18px 18px; }
+  .topo-pagina { padding: 16px 18px; }
+  .cabecalho-titulo-bloco { width: 100%; }
+  .cabecalho-acoes-bloco { width: 100%; justify-content: flex-start; }
   .area-pagina { padding: 20px 16px 40px; }
+  .fatura-info-bloco { grid-template-columns: 1fr; }
+
+  /* Filtros ocupam toda a largura disponível e empilham em telas menores */
+  .barra-filtros { gap: 10px; }
+  .barra-filtros .campo-select,
+  .barra-filtros .campo-periodo {
+    flex: 1 1 100%;
+  }
+  .campo-periodo-duplo .campo-input { flex: 1 1 140px; }
+
+  /* Botões de ação do cabeçalho empilham em coluna única e ocupam a largura toda */
+  .linha-acoes-topo { width: 100%; }
+  .linha-acoes-topo .botao { flex: 1 1 100%; }
+
+  /* Área de toque maior para uso confortável no celular */
+  .botao {
+    padding: 11px 16px;
+    min-height: 42px;
+  }
+  .botao-icone {
+    width: 38px;
+    height: 38px;
+  }
+  .menu-item {
+    padding: 13px 14px;
+  }
+
+  /* Impede que o Safari/iOS aplique zoom automático ao focar campos (fonte < 16px).
+     Repete os seletores ".grupo-form ..." para igualar a especificidade da regra base
+     e garantir que o tamanho de 16px realmente vença dentro dos formulários dos modais. */
+  .campo-select,
+  .campo-input,
+  .grupo-form .campo-input,
+  .grupo-form .campo-select,
+  .grupo-form textarea {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .fundo-modal { padding: 12px; }
 }
 
 @media (max-width: 560px) {

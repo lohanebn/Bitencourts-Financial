@@ -66,9 +66,52 @@ function voltarParaLogin() {
 
 function controlesPeriodo(prefixo) {
   const p=Estado.periodo;
+  const tipoAtual = p.periodo || 'mes';
+  const estiloSe = (campo) => campo===tipoAtual ? '' : 'display:none';
   return `<select class="campo-select" id="${prefixo}TipoPeriodo"><option value="mes">Mês/Ano</option><option value="ano">Ano completo</option><option value="todo">Todo período</option><option value="personalizado">Período personalizado</option></select>
-    <input class="campo-input" type="month" id="${prefixo}Mes" value="${p.ano}-${String(p.mes).padStart(2,'0')}"><input class="campo-input" type="number" id="${prefixo}Ano" value="${p.ano}" min="2000" max="2200">
-    <input class="campo-input" type="date" id="${prefixo}Inicio" value="${p.data_inicio||''}"><input class="campo-input" type="date" id="${prefixo}Fim" value="${p.data_fim||''}">`;
+    <span class="campo-periodo" data-periodo-prefixo="${prefixo}" data-periodo-campo="mes" style="${estiloSe('mes')}">
+      <input class="campo-input" type="month" id="${prefixo}Mes" value="${p.ano}-${String(p.mes).padStart(2,'0')}">
+    </span>
+    <span class="campo-periodo" data-periodo-prefixo="${prefixo}" data-periodo-campo="ano" style="${estiloSe('ano')}">
+      <input class="campo-input" type="number" id="${prefixo}Ano" value="${p.ano}" min="2000" max="2200">
+    </span>
+    <span class="campo-periodo campo-periodo-duplo" data-periodo-prefixo="${prefixo}" data-periodo-campo="personalizado" style="${estiloSe('personalizado')}">
+      <input class="campo-input" type="date" id="${prefixo}Inicio" value="${p.data_inicio||''}">
+      <input class="campo-input" type="date" id="${prefixo}Fim" value="${p.data_fim||''}">
+    </span>`;
+}
+
+// Mostra/esconde os campos de mês, ano ou período personalizado conforme o tipo selecionado,
+// com uma transição suave (fade) para não gerar um "salto" abrupto no layout.
+function definirVisibilidadeCampoPeriodo(el, visivel) {
+  if (!el) return;
+  if (visivel) {
+    el.style.display = '';
+    requestAnimationFrame(() => el.classList.remove('campo-periodo-oculto'));
+  } else {
+    el.classList.add('campo-periodo-oculto');
+    window.setTimeout(() => {
+      if (el.classList.contains('campo-periodo-oculto')) el.style.display = 'none';
+    }, 160);
+  }
+}
+
+function aplicarVisibilidadePeriodo(prefixo) {
+  const tipoEl = document.getElementById(`${prefixo}TipoPeriodo`);
+  if (!tipoEl) return;
+  const tipo = tipoEl.value;
+  document.querySelectorAll(`[data-periodo-prefixo="${prefixo}"]`).forEach(el => {
+    definirVisibilidadeCampoPeriodo(el, el.getAttribute('data-periodo-campo') === tipo);
+  });
+}
+
+// Define o valor inicial do seletor de período e liga a troca automática de visibilidade dos campos.
+function inicializarControlesPeriodo(prefixo) {
+  const tipoEl = document.getElementById(`${prefixo}TipoPeriodo`);
+  if (!tipoEl) return;
+  tipoEl.value = Estado.periodo.periodo;
+  aplicarVisibilidadePeriodo(prefixo);
+  tipoEl.addEventListener('change', () => aplicarVisibilidadePeriodo(prefixo));
 }
 
 function lerPeriodo(prefixo) {
@@ -518,7 +561,7 @@ async function renderizarDashboard() {
       </div>
     </div>
   `;
-  document.getElementById('dashTipoPeriodo').value=Estado.periodo.periodo;
+  inicializarControlesPeriodo('dash');
   document.querySelectorAll('#filtrosDashboard input,#filtrosDashboard select').forEach(el=>el.addEventListener('change',()=>{lerPeriodo('dash');renderizarDashboard();}));
   document.getElementById('botaoVerHistoricoCompleto')?.addEventListener('click', abrirHistoricoCompleto);
   await carregarTimeline();
@@ -844,7 +887,7 @@ async function renderizarReceitas() {
     </div>
   `;
 
-  document.getElementById('recTipoPeriodo').value=Estado.periodo.periodo;
+  inicializarControlesPeriodo('rec');
   document.querySelectorAll('.barra-filtros input,.barra-filtros select').forEach(el=>el.addEventListener('change', carregarTabelaReceitas));
 
   await carregarTabelaReceitas();
@@ -1002,7 +1045,7 @@ async function renderizarDespesas() {
     </div>
   `;
 
-  document.getElementById('despTipoPeriodo').value=Estado.periodo.periodo;
+  inicializarControlesPeriodo('desp');
   ['filtroDespesaUsuario','filtroDespesaCategoria','filtroDespesaTipo','filtroDespesaStatus','filtroDespesaOrigem','despTipoPeriodo','despMes','despAno','despInicio','despFim'].forEach(id => {
     document.getElementById(id).addEventListener('change', carregarTabelaDespesas);
   });
@@ -1283,7 +1326,7 @@ async function salvarDespesa(evento) {
 
 async function renderizarCartoes() {
   document.getElementById('areaAcaoTopo').innerHTML = `
-    <div style="display:flex; gap:10px;">
+    <div class="linha-acoes-topo">
       <button class="botao botao-secundario" id="botaoNovoCartao">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
         Novo Cartão
@@ -1314,7 +1357,7 @@ async function renderizarCartoes() {
     </div>
   `;
 
-  document.getElementById('cartTipoPeriodo').value=Estado.periodo.periodo;
+  inicializarControlesPeriodo('cart');
   document.querySelectorAll('#filtrosCartoes input,#filtrosCartoes select').forEach(el=>el.addEventListener('change',()=>{lerPeriodo('cart');recarregarCartoes();}));
   document.getElementById('botaoNovoCartao').addEventListener('click', () => abrirModalCartao());
   document.getElementById('botaoNovoParcelamento').addEventListener('click', () => abrirModalParcelamento());
@@ -1434,6 +1477,7 @@ async function _carregarFaturaCorpo(cartaoId) {
         <span class="fatura-info-valor valor-negativo">${formatarMoeda(totalGeral)}</span>
       </div>
     </div>
+    <div class="tabela-wrapper">
     <table class="tabela-padrao fatura-tabela">
       <thead>
         <tr>
@@ -1461,7 +1505,8 @@ async function _carregarFaturaCorpo(cartaoId) {
           <td class="valor-negativo">${formatarMoeda(totalGeral)}</td>
         </tr>
       </tfoot>
-    </table>`;
+    </table>
+    </div>`;
 
   corpo.querySelectorAll('.fatura-editar-btn').forEach(btn => {
     const p = parcelas[Number(btn.dataset.idx)];
@@ -1798,8 +1843,8 @@ async function renderizarPagamentos() {
       <div class="barra-filtros" id="filtrosBaixas" style="padding:10px 16px 0;">${controlesPeriodo('bxs')}</div>
       <div id="historicoPagamentos"></div>
     </div>`;
-  document.getElementById('pagTipoPeriodo').value=Estado.periodo.periodo;
-  document.getElementById('bxsTipoPeriodo').value=Estado.periodo.periodo;
+  inicializarControlesPeriodo('pag');
+  inicializarControlesPeriodo('bxs');
   document.querySelectorAll('#filtrosPagamentos input,#filtrosPagamentos select').forEach(el=>el.addEventListener('change',carregarPagamentos));
   document.querySelectorAll('#filtrosBaixas input,#filtrosBaixas select').forEach(el=>el.addEventListener('change',carregarBaixas));
   document.getElementById('formPagamento').onsubmit=confirmarRegistroPagamento;
@@ -1956,7 +2001,7 @@ async function renderizarConfiguracoes() {
         </p>
         <div style="display:flex; flex-direction:column; gap:12px;">
           ${Estado.usuarios.map(u => `
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1px solid var(--cor-borda); border-radius:10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1px solid var(--cor-borda); border-radius:10px; flex-wrap:wrap;">
               <div style="display:flex; align-items:center; gap:12px;">
                 <div class="avatar-mini" style="background:${u.cor}; width:34px; height:34px; font-size:13px;">${iniciaisNome(u.nome)}</div>
                 <div>
