@@ -484,7 +484,11 @@ async function renderizarDashboard() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
           Despesas do Mês
         </div>
-        <div class="valor-card">${formatarMoeda((d.cards.despesaTotal||0)+(d.cards.parcelasTotal||0))}</div>
+        <div class="valor-card">${formatarMoeda(d.cards.despesaTotal)}</div>
+        <div class="sub-indicadores-card">
+          <span class="sub-indicador pago">Pago: <strong>${formatarMoeda(d.cards.despesaPagoMes)}</strong></span>
+          <span class="sub-indicador pendente">Pendente: <strong>${formatarMoeda(d.cards.despesaPendenteMes)}</strong></span>
+        </div>
       </div>
       <div class="card-indicador saldo ${d.cards.saldoPrevisto >= 0 ? 'positivo' : 'negativo'}">
         <div class="rotulo-card">
@@ -492,6 +496,17 @@ async function renderizarDashboard() {
           Saldo Previsto
         </div>
         <div class="valor-card">${formatarMoeda(d.cards.saldoPrevisto)}</div>
+      </div>
+      <div class="card-indicador disponivel ${d.cards.saldoDisponivel >= 0 ? 'positivo' : 'negativo'}">
+        <div class="rotulo-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          Saldo Disponível
+        </div>
+        <div class="valor-card">${formatarMoeda(d.cards.saldoDisponivel)}</div>
+        <div class="sub-indicadores-card">
+          <span class="sub-indicador">Receitas Recebidas: <strong>${formatarMoeda(d.cards.receitasRecebidas)}</strong></span>
+          <span class="sub-indicador">Despesas Pagas: <strong>${formatarMoeda(d.cards.despesasPagas)}</strong></span>
+        </div>
       </div>
       <div class="card-indicador parcelas">
         <div class="rotulo-card">

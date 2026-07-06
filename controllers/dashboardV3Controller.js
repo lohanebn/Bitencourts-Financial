@@ -5,18 +5,32 @@ const ParcelamentoModel = require('../models/parcelamentoModel');
 const DespesaModel = require('../models/despesaModel');
 const { normalizarPeriodo, aplicarPeriodo } = require('../utils/periodo');
 
-async function soma(tabela, coluna, periodo) {
-  const params=[];
-  let sql;
-  if (tabela === 'despesas') {
-    sql = `SELECT COALESCE(SUM(GREATEST(COALESCE(valor,0)-COALESCE(valor_pago,0),0)),0) total FROM ${tabela} WHERE status IN ('Pendente','Atrasado') AND 1=1`;
-  } else if (tabela === 'parcelas') {
-    sql = `SELECT COALESCE(SUM(GREATEST(COALESCE(valor,0)-COALESCE(valor_pago,0),0)),0) total FROM ${tabela} WHERE status='Pendente' AND 1=1`;
-  } else {
-    sql = `SELECT COALESCE(SUM(valor),0) total FROM ${tabela} WHERE 1=1`;
-  }
-  sql=aplicarPeriodo(sql,params,coluna,periodo);
-  const [rows]=await db.query(sql,params);
+// Soma o valor total (cheio), independente do status — usada para "Despesas do Mês"
+// e para o Saldo Previsto, que representam planejamento e não podem variar com baixas.
+async function somaTotalPeriodo(tabela, coluna, periodo) {
+  const params = [];
+  let sql = `SELECT COALESCE(SUM(valor),0) total FROM ${tabela} WHERE 1=1`;
+  sql = aplicarPeriodo(sql, params, coluna, periodo);
+  const [rows] = await db.query(sql, params);
+  return Number(rows[0].total);
+}
+
+// Soma o valor já pago (valor_pago) — usada para os indicadores "Pago" e para o
+// Saldo Disponível, que é o único indicador que deve variar conforme as baixas.
+async function somaPagoPeriodo(tabela, coluna, periodo) {
+  const params = [];
+  let sql = `SELECT COALESCE(SUM(valor_pago),0) total FROM ${tabela} WHERE 1=1`;
+  sql = aplicarPeriodo(sql, params, coluna, periodo);
+  const [rows] = await db.query(sql, params);
+  return Number(rows[0].total);
+}
+
+// Soma receitas já efetivamente recebidas (data de recebimento até hoje) dentro do período.
+async function receitasRecebidasPeriodo(periodo) {
+  const params = [];
+  let sql = `SELECT COALESCE(SUM(valor),0) total FROM receitas WHERE data_recebimento <= CURDATE()`;
+  sql = aplicarPeriodo(sql, params, 'data_recebimento', periodo);
+  const [rows] = await db.query(sql, params);
   return Number(rows[0].total);
 }
 
@@ -25,9 +39,27 @@ module.exports = { async resumo(req,res) {
     await DespesaModel.atualizarStatusAtrasados();
     const periodo=normalizarPeriodo(req.query);
     const receitaTotal=await ReceitaModel.totalPorIntervalo(periodo.inicio,periodo.fim);
-    const despesaTotal=await soma('despesas','data_vencimento',periodo);
-    const parcelasTotal=await soma('parcelas','data_vencimento',periodo);
-    const saldoPrevisto=receitaTotal-despesaTotal-parcelasTotal;
+
+    // Despesas do Mês: valor total previsto para o período, independente do status
+    // (pago, pendente ou atrasado) — inclui despesas avulsas/fixas e parcelas
+    // (empréstimos, financiamentos e cartão de crédito).
+    const despesasMesTotal=await somaTotalPeriodo('despesas','data_vencimento',periodo);
+    const parcelasMesTotal=await somaTotalPeriodo('parcelas','data_vencimento',periodo);
+    const despesaTotal=despesasMesTotal+parcelasMesTotal;
+
+    // Quanto desse total já foi pago / ainda está em aberto (indicadores auxiliares)
+    const despesasPagoMes=await somaPagoPeriodo('despesas','data_vencimento',periodo);
+    const parcelasPagoMes=await somaPagoPeriodo('parcelas','data_vencimento',periodo);
+    const despesaPagoMes=despesasPagoMes+parcelasPagoMes;
+    const despesaPendenteMes=Math.max(despesaTotal-despesaPagoMes,0);
+
+    // Saldo Previsto = planejamento do mês. Usa o total previsto de despesas (acima),
+    // então registrar ou desfazer uma baixa nunca altera este valor.
+    const saldoPrevisto=receitaTotal-despesaTotal;
+
+    // Saldo Disponível = fluxo de caixa real (o único indicador que varia com as baixas).
+    const receitasRecebidas=await receitasRecebidasPeriodo(periodo);
+    const saldoDisponivel=receitasRecebidas-despesaPagoMes;
 
     // Resumo por pessoa — inclui parcelas de cartões rateados (50/50)
     const usuarios=await UsuarioModel.listarTodos();
@@ -143,7 +175,13 @@ module.exports = { async resumo(req,res) {
     const semaforo=saldoPrevisto<0?'vermelho':(receitaTotal>0&&saldoPrevisto/receitaTotal>.2?'verde':'amarelo');
 
     res.json({sucesso:true,dados:{periodo,
-      cards:{receitaTotal,despesaTotal,parcelasTotal,saldoPrevisto,parcelamentosFuturos:await ParcelamentoModel.totalParcelamentosFuturos()},
+      cards:{
+        receitaTotal,
+        despesaTotal,despesaPagoMes,despesaPendenteMes,
+        saldoPrevisto,
+        receitasRecebidas,despesasPagas:despesaPagoMes,saldoDisponivel,
+        parcelamentosFuturos:await ParcelamentoModel.totalParcelamentosFuturos()
+      },
       semaforo,resumoPorPessoa,proximasContas,
       parcelamentosAtivos:await ParcelamentoModel.parcelasAtivasResumo(),
       despesasPorCategoria,despesasCartaoPorCategoria,alertas:alertasContas,comprometimentos,
