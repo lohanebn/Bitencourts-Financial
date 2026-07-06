@@ -679,71 +679,90 @@ function obterInfoTimeline(item) {
   };
 }
 
+// Constrói o conteúdo expandido do card a partir de "blocos" independentes.
+// Cada bloco só entra na lista se tiver dado real e válido para mostrar; se, ao final,
+// nenhum bloco reconhecido existir (ex.: "detalhes" com um formato inesperado/antigo),
+// caímos num parágrafo com a descrição da ação — o painel expandido nunca fica vazio.
 function renderizarDetalhesTimeline(item) {
   const detalhes = parsearDetalhesAuditoria(item);
-  if (!detalhes) {
-    return `
-      <div class="timeline-detalhes">
-        <p class="timeline-paragrafo">${escaparHtml(item?.descricao || 'Registro de auditoria enviado pelo sistema.')}</p>
-      </div>`;
+  const textoFallback = (detalhes && typeof detalhes.titulo === 'string' && detalhes.titulo.trim())
+    || item?.descricao
+    || 'Registro de auditoria enviado pelo sistema.';
+
+  const blocos = [];
+
+  if (detalhes && typeof detalhes === 'object') {
+    const registro = detalhes.registro;
+    const ehExclusao = detalhes.tipo === 'exclusao';
+
+    if (registro && typeof registro === 'object' && registro.valor) {
+      blocos.push(`
+        <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
+          <span class="timeline-card-label">${escaparHtml(registro.titulo || 'Registro afetado')}</span>
+          <strong>${escaparHtml(registro.valor)}</strong>
+        </div>`);
+    }
+
+    const mudancasValidas = Array.isArray(detalhes.mudancas)
+      ? detalhes.mudancas.filter(m => m && typeof m === 'object' && m.campo)
+      : [];
+    const camposValidos = Array.isArray(detalhes.campos)
+      ? detalhes.campos.filter(c => c && typeof c === 'object' && c.campo)
+      : [];
+
+    if (detalhes.tipo === 'alteracao' && mudancasValidas.length) {
+      blocos.push(`
+        <div class="timeline-card">
+          <span class="timeline-card-label">O que foi alterado</span>
+          <div class="timeline-lista-campos">
+            ${mudancasValidas.map(mudanca => `
+              <div class="timeline-comparativo">
+                <div class="timeline-comparativo-titulo">${escaparHtml(mudanca.campo)}</div>
+                <span class="timeline-valor antigo">${escaparHtml(mudanca.de ?? '—')}</span>
+                <span class="timeline-seta">${ICONE_SETA_TIMELINE}</span>
+                <span class="timeline-valor novo">${escaparHtml(mudanca.para ?? '—')}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>`);
+    } else if (camposValidos.length) {
+      blocos.push(`
+        <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
+          <span class="timeline-card-label">${ehExclusao ? 'Registro excluído' : 'Detalhes'}</span>
+          <div class="timeline-lista-campos">
+            ${camposValidos.map(campo => `
+              <div class="timeline-campo">
+                <strong>${escaparHtml(campo.campo)}</strong>
+                <span>${escaparHtml(campo.valor ?? '—')}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>`);
+    }
+
+    if (ehExclusao && detalhes.motivo) {
+      blocos.push(`
+        <div class="timeline-card timeline-card-exclusao">
+          <span class="timeline-card-label">Motivo</span>
+          <strong>${escaparHtml(detalhes.motivo)}</strong>
+        </div>`);
+    }
   }
 
-  const registro = detalhes.registro;
-  const ehExclusao = detalhes.tipo === 'exclusao';
-
-  let corpo = `<div class="timeline-detalhes">`;
-
-  if (registro?.valor) {
-    corpo += `
-      <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
-        <span class="timeline-card-label">${escaparHtml(registro.titulo || 'Registro afetado')}</span>
-        <strong>${escaparHtml(registro.valor)}</strong>
-      </div>`;
+  if (!blocos.length) {
+    blocos.push(`<p class="timeline-paragrafo">${escaparHtml(textoFallback)}</p>`);
   }
 
-  if (detalhes.tipo === 'alteracao' && Array.isArray(detalhes.mudancas) && detalhes.mudancas.length) {
-    corpo += `
-      <div class="timeline-card">
-        <span class="timeline-card-label">O que foi alterado</span>
-        <div class="timeline-lista-campos">
-          ${detalhes.mudancas.map(mudanca => `
-            <div class="timeline-comparativo">
-              <div class="timeline-comparativo-titulo">${escaparHtml(mudanca.campo)}</div>
-              <span class="timeline-valor antigo">${escaparHtml(mudanca.de || '—')}</span>
-              <span class="timeline-seta">${ICONE_SETA_TIMELINE}</span>
-              <span class="timeline-valor novo">${escaparHtml(mudanca.para || '—')}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>`;
-  } else if (Array.isArray(detalhes.campos) && detalhes.campos.length) {
-    corpo += `
-      <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
-        <span class="timeline-card-label">${ehExclusao ? 'Registro excluído' : 'Detalhes'}</span>
-        <div class="timeline-lista-campos">
-          ${detalhes.campos.map(campo => `
-            <div class="timeline-campo">
-              <strong>${escaparHtml(campo.campo)}</strong>
-              <span>${escaparHtml(campo.valor || '—')}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>`;
-  }
-
-  if (ehExclusao && detalhes.motivo) {
-    corpo += `
-      <div class="timeline-card timeline-card-exclusao">
-        <span class="timeline-card-label">Motivo</span>
-        <strong>${escaparHtml(detalhes.motivo)}</strong>
-      </div>`;
-  }
-
-  corpo += '</div>';
-  return corpo;
+  return `<div class="timeline-detalhes">${blocos.join('')}</div>`;
 }
 
 function montarItemTimelineHtml(item) {
+  // Registro nulo/inválido (não deveria acontecer, mas a API já retornou dados assim
+  // no passado) — em vez de deixar o restante da função lançar um erro no meio do
+  // template (o que interromperia a renderização de TODOS os itens seguintes no
+  // mesmo .map()), ignoramos silenciosamente este item.
+  if (!item || typeof item !== 'object') return '';
+
   const info = obterInfoTimeline(item);
   const detalhes = parsearDetalhesAuditoria(item);
   const titulo = detalhes?.titulo || item?.descricao || 'Alteração registrada';
@@ -751,8 +770,8 @@ function montarItemTimelineHtml(item) {
   // A API atual não retorna IP, dispositivo, navegador ou origem (Web/Mobile/API) —
   // por isso essas informações só aparecem aqui quando (e se) existirem nos dados,
   // sem nunca inventar um valor padrão.
-  const origem = item.origem || detalhes?.origem || '';
-  const dataObj = item.criado_em ? new Date(item.criado_em) : null;
+  const origem = item?.origem || detalhes?.origem || '';
+  const dataObj = item?.criado_em ? new Date(item.criado_em) : null;
   const dataValida = dataObj && !Number.isNaN(dataObj.getTime());
   const dataCurta = dataValida ? dataObj.toLocaleDateString('pt-BR') : '—';
   const horaCurta = dataValida ? dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
@@ -765,7 +784,7 @@ function montarItemTimelineHtml(item) {
         <div class="timeline-conteudo-resumo">
           <div class="timeline-meta">
             <div class="timeline-usuario">
-              <strong>${escaparHtml(item.usuario_nome || 'Sistema')}</strong>
+              <strong>${escaparHtml(item?.usuario_nome ?? 'Sistema')}</strong>
               <span class="timeline-badge ${info.classe}">${escaparHtml(info.label)}</span>
             </div>
             <small>${horaCurta}</small>
@@ -779,6 +798,33 @@ function montarItemTimelineHtml(item) {
     </details>`;
 }
 
+// Monta o HTML de uma lista de registros de auditoria com blindagem total:
+// registros nulos/inválidos são descartados, e se a renderização de um item
+// específico falhar por qualquer motivo (formato inesperado vindo da API), esse
+// item é ignorado e registrado no console — sem derrubar os demais cards já
+// processados. Nunca produz um card vazio.
+function renderizarRegistrosTimeline(registros, contexto = 'timeline') {
+  const lista = Array.isArray(registros) ? registros : [];
+  console.log(`[${contexto}] registros recebidos da API:`, lista.length, lista);
+
+  const htmlItens = [];
+  lista.forEach((item, indice) => {
+    if (!item || typeof item !== 'object') {
+      console.warn(`[${contexto}] registro #${indice} ignorado: item nulo/inválido.`, item);
+      return;
+    }
+    try {
+      const html = montarItemTimelineHtml(item);
+      if (html) htmlItens.push(html);
+      else console.warn(`[${contexto}] registro #${indice} (id=${item.id}) não gerou conteúdo e foi ignorado.`, item);
+    } catch (err) {
+      console.warn(`[${contexto}] falha ao renderizar registro #${indice} (id=${item.id}); item ignorado.`, err, item);
+    }
+  });
+
+  return htmlItens.join('');
+}
+
 async function carregarTimeline() {
   const container = document.getElementById('timelineLista');
   if (!container) return;
@@ -789,7 +835,8 @@ async function carregarTimeline() {
       container.innerHTML = `<div class="estado-vazio"><p>Nenhuma ação registrada ainda.</p></div>`;
       return;
     }
-    container.innerHTML = registros.map(montarItemTimelineHtml).join('');
+    const html = renderizarRegistrosTimeline(registros, 'timeline-dashboard');
+    container.innerHTML = html || `<div class="estado-vazio"><p>Nenhuma ação registrada ainda.</p></div>`;
   } catch (err) {
     container.innerHTML = `<div class="estado-vazio"><p>Falha ao carregar a linha do tempo.</p></div>`;
   }
@@ -822,10 +869,10 @@ async function carregarHistoricoCompleto({ reset = false } = {}) {
     if (EstadoHistorico.tipoAcao) params.set('tipo_acao', EstadoHistorico.tipoAcao);
     const resp = await chamarApi(`/auditoria?${params.toString()}`);
     const registros = resp.dados || [];
-    const html = registros.map(montarItemTimelineHtml).join('');
+    const html = renderizarRegistrosTimeline(registros, `historico-completo${EstadoHistorico.tipoAcao ? ':' + EstadoHistorico.tipoAcao : ''}`);
     if (reset) {
-      container.innerHTML = registros.length ? html : `<div class="estado-vazio"><p>Nenhuma ação encontrada.</p></div>`;
-    } else {
+      container.innerHTML = html || `<div class="estado-vazio"><p>Nenhuma ação encontrada.</p></div>`;
+    } else if (html) {
       container.insertAdjacentHTML('beforeend', html);
     }
     EstadoHistorico.offset += registros.length;

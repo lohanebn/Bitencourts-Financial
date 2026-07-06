@@ -1124,6 +1124,13 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   animation: abrirDetalhe 0.2s ease;
 }
 
+.timeline-paragrafo {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--cor-texto-suave);
+}
+
 .timeline-card {
   background: var(--cor-fundo);
   border-radius: 12px;
