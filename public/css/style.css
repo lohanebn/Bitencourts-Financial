@@ -989,12 +989,14 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
 }
 
 .timeline-item {
+  /* IMPORTANTE: sem overflow:hidden aqui — o círculo do evento (.timeline-icone) é
+     posicionado com left negativo para "sair" deste card e ficar sobre a linha
+     vertical; overflow:hidden clipparia (esconderia) o círculo. */
   position: relative;
   background: var(--cor-superficie);
   border: 1px solid var(--cor-borda);
   border-radius: 14px;
   box-shadow: var(--sombra);
-  overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1007,6 +1009,7 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  min-height: 24px;
   padding: 16px 18px;
   cursor: pointer;
   list-style: none;
