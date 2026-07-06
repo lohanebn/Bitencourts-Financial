@@ -518,7 +518,7 @@
 
   <!-- Modal Histórico Completo de Auditoria -->
   <div class="fundo-modal" id="modalHistorico">
-    <div class="caixa-modal" style="max-width:720px;width:95vw;">
+    <div class="caixa-modal caixa-modal-larga">
       <div class="modal-cabecalho">
         <div>
           <h3>Histórico completo de auditoria</h3>
@@ -529,20 +529,30 @@
         </button>
       </div>
       <div class="modal-corpo" style="padding-top:0">
-        <div class="grupo-form" style="margin-bottom:14px">
-          <label for="historicoFiltroTipo">Filtrar por tipo de ação</label>
-          <select class="campo-select" id="historicoFiltroTipo">
-            <option value="">Todos</option>
-            <option value="Login">Login</option>
-            <option value="Logout">Logout</option>
-            <option value="senha">Senha</option>
-            <option value="Cadastro">Cadastro</option>
-            <option value="Atualiza">Atualização</option>
-            <option value="Exclus">Exclusão</option>
-            <option value="Pagamento">Pagamento</option>
-            <option value="parcel">Parcelamento</option>
-            <option value="usuário">Usuário</option>
-          </select>
+        <div class="historico-filtros">
+          <div class="grupo-form historico-filtro-tipo" style="margin-bottom:0">
+            <label for="historicoFiltroTipo">Filtrar por tipo de ação</label>
+            <select class="campo-select" id="historicoFiltroTipo">
+              <option value="">Todos os tipos</option>
+              <option value="Login">Login</option>
+              <option value="Logout">Logout</option>
+              <option value="senha">Senha</option>
+              <option value="Cadastro">Cadastro</option>
+              <option value="Atualiza">Atualização</option>
+              <option value="Exclus">Exclusão</option>
+              <option value="Pagamento">Pagamento</option>
+              <option value="parcel">Parcelamento</option>
+              <option value="usuário">Usuário</option>
+            </select>
+          </div>
+          <div class="grupo-form historico-filtro-periodo" style="margin-bottom:0">
+            <label>Período</label>
+            <div class="historico-periodo-intervalo">
+              <input type="date" class="campo-input" id="historicoDataInicio">
+              <span class="historico-periodo-separador">–</span>
+              <input type="date" class="campo-input" id="historicoDataFim">
+            </div>
+          </div>
         </div>
         <div class="timeline-lista timeline-lista-modal" id="historicoLista" style="max-height:56vh;overflow-y:auto">
           <div class="estado-vazio"><p>Carregando histórico...</p></div>

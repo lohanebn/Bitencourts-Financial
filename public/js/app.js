@@ -649,7 +649,7 @@ const ICONES_LINHA_TEMPO = {
   pagamento: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
   padrao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 };
-const ICONE_SETA_TIMELINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>';
+const ICONE_SETA_EDICAO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
 const ICONE_CHEVRON_TIMELINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
 // Classifica a ação em uma das 5 categorias visuais da timeline (cor do círculo/badge),
@@ -719,18 +719,6 @@ function linhaDetalheHtml(label, valor) {
   return `<div class="linha-detalhe"><span class="linha-detalhe-label">${escaparHtml(label)}</span><span class="linha-detalhe-valor">${escaparHtml(valor)}</span></div>`;
 }
 
-function linhaAlteracaoHtml(campo, de, para) {
-  return `
-    <div class="linha-detalhe">
-      <span class="linha-detalhe-label">${escaparHtml(campo)}</span>
-      <div class="linha-alteracao-valores">
-        <span class="timeline-valor antigo">${escaparHtml(de ?? '—')}</span>
-        <span class="timeline-seta">${ICONE_SETA_TIMELINE}</span>
-        <span class="timeline-valor novo">${escaparHtml(para ?? '—')}</span>
-      </div>
-    </div>`;
-}
-
 function ordenarCamposParaExibicao(campos) {
   return [...campos].sort((a, b) => {
     const ia = ORDEM_CAMPOS_PREFERIDA.indexOf(RENOMEAR_LABEL_CAMPO[a.campo] || a.campo);
@@ -739,48 +727,77 @@ function ordenarCamposParaExibicao(campos) {
   });
 }
 
-// Constrói o conteúdo expandido do card como uma lista simples de linhas
-// "rótulo em cima / valor embaixo" — sem caixas, sem tabelas, sem textos genéricos
-// como "Resumo" ou "Detalhes". Mostra somente os campos que existem e são relevantes
-// para aquele tipo de ação; se nada reconhecido existir, cai num resumo textual básico
-// (usuário + data) — o painel expandido nunca fica vazio.
+// Card de edição: identifica o registro (não mudou) e mostra duas colunas lado a
+// lado — "Como era antes" / "Como ficou" — somente com os campos que de fato
+// mudaram (nunca lista um campo que permaneceu igual).
+function renderizarEdicaoTimeline(item, detalhes, dataHora) {
+  const registro = detalhes.registro;
+  const labelIdentificador = LABEL_IDENTIFICADOR_POR_ENTIDADE[detalhes.entidade] || 'Registro';
+  const mudancasValidas = Array.isArray(detalhes.mudancas)
+    ? detalhes.mudancas.filter(m => m && typeof m === 'object' && m.campo)
+    : [];
+
+  if (!mudancasValidas.length) {
+    return `<div class="timeline-detalhes"><div class="timeline-detalhes-grade">${linhaDetalheHtml('Ação', item?.descricao || detalhes.titulo || 'Registro de auditoria.')}</div></div>`;
+  }
+
+  const contexto = (registro && typeof registro === 'object' && valorIdentificadorValido(registro.valor))
+    ? `<div class="timeline-edicao-contexto">${linhaDetalheHtml(labelIdentificador, registro.valor)}</div>`
+    : '';
+
+  const itemLista = (campoChave) => mudancasValidas
+    .map(m => `<li><strong>${escaparHtml(m.campo)}:</strong> ${escaparHtml(m[campoChave] ?? '—')}</li>`)
+    .join('');
+
+  return `
+    <div class="timeline-detalhes">
+      ${contexto}
+      <div class="timeline-edicao-comparativo">
+        <div class="timeline-edicao-coluna antes">
+          <div class="timeline-edicao-titulo">Como era antes</div>
+          <ul class="timeline-edicao-lista">${itemLista('de')}</ul>
+        </div>
+        <div class="timeline-edicao-seta">${ICONE_SETA_EDICAO}</div>
+        <div class="timeline-edicao-coluna depois">
+          <div class="timeline-edicao-titulo">Como ficou</div>
+          <ul class="timeline-edicao-lista">${itemLista('para')}</ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Constrói o conteúdo expandido do card. Para cadastro/exclusão/pagamento/login,
+// mostra só os campos existentes e relevantes numa grade lado a lado (sem caixas,
+// sem tabelas, sem textos genéricos como "Resumo" ou "Detalhes"); para edições,
+// delega para renderizarEdicaoTimeline. Se nada reconhecido existir, cai num
+// resumo básico (usuário + data) — o painel expandido nunca fica vazio.
 function renderizarDetalhesTimeline(item) {
   const detalhes = parsearDetalhesAuditoria(item);
   const dataHora = formatarDataHoraCurta(item?.criado_em);
+
+  if (detalhes && typeof detalhes === 'object' && detalhes.tipo === 'alteracao') {
+    return renderizarEdicaoTimeline(item, detalhes, dataHora);
+  }
+
   const linhas = [];
 
   if (detalhes && typeof detalhes === 'object') {
     const entidade = detalhes.entidade;
-    const registro = detalhes.registro;
     const ehPagamento = entidade === 'pagamento';
     const ehExclusao = detalhes.tipo === 'exclusao';
-    const labelIdentificador = LABEL_IDENTIFICADOR_POR_ENTIDADE[entidade] || 'Registro';
 
-    if (detalhes.tipo === 'alteracao') {
-      const mudancasValidas = Array.isArray(detalhes.mudancas)
-        ? detalhes.mudancas.filter(m => m && typeof m === 'object' && m.campo)
-        : [];
-      if (registro && typeof registro === 'object' && valorIdentificadorValido(registro.valor)) {
-        linhas.push(linhaDetalheHtml(labelIdentificador, registro.valor));
-      }
-      if (mudancasValidas.length) {
-        linhas.push(`<div class="timeline-secao-titulo">Alterações</div>`);
-        mudancasValidas.forEach(m => linhas.push(linhaAlteracaoHtml(m.campo, m.de, m.para)));
-      }
-    } else {
-      const camposValidos = Array.isArray(detalhes.campos)
-        ? detalhes.campos.filter(c => c && typeof c === 'object' && c.campo && (ehPagamento || !CAMPOS_OCULTOS_PADRAO.includes(c.campo)))
-        : [];
-      ordenarCamposParaExibicao(camposValidos).forEach(campo => {
-        const rotulo = RENOMEAR_LABEL_CAMPO[campo.campo] || campo.campo;
-        linhas.push(linhaDetalheHtml(rotulo, campo.valor ?? '—'));
-      });
-      if (!ehExclusao) {
-        linhas.push(linhaDetalheHtml(ehPagamento ? 'Data do pagamento' : 'Data', dataHora));
-      }
-      if (ehExclusao && detalhes.motivo) {
-        linhas.push(linhaDetalheHtml('Motivo', detalhes.motivo));
-      }
+    const camposValidos = Array.isArray(detalhes.campos)
+      ? detalhes.campos.filter(c => c && typeof c === 'object' && c.campo && (ehPagamento || !CAMPOS_OCULTOS_PADRAO.includes(c.campo)))
+      : [];
+    ordenarCamposParaExibicao(camposValidos).forEach(campo => {
+      const rotulo = RENOMEAR_LABEL_CAMPO[campo.campo] || campo.campo;
+      linhas.push(linhaDetalheHtml(rotulo, campo.valor ?? '—'));
+    });
+    if (!ehExclusao) {
+      linhas.push(linhaDetalheHtml(ehPagamento ? 'Data do pagamento' : 'Data', dataHora));
+    }
+    if (ehExclusao && detalhes.motivo) {
+      linhas.push(linhaDetalheHtml('Motivo', detalhes.motivo));
     }
   }
 
@@ -797,7 +814,7 @@ function renderizarDetalhesTimeline(item) {
     if (item?.navegador) linhas.push(linhaDetalheHtml('Navegador', item.navegador));
   }
 
-  return `<div class="timeline-detalhes">${linhas.join('')}</div>`;
+  return `<div class="timeline-detalhes"><div class="timeline-detalhes-grade">${linhas.join('')}</div></div>`;
 }
 
 function montarItemTimelineHtml(item) {
@@ -808,24 +825,20 @@ function montarItemTimelineHtml(item) {
   if (!item || typeof item !== 'object') return '';
 
   const info = obterInfoTimeline(item);
-  const detalhes = parsearDetalhesAuditoria(item);
-  const contexto = valorIdentificadorValido(detalhes?.registro?.valor) ? detalhes.registro.valor : '';
-  const horaCurta = item?.criado_em ? formatarDataHoraCurta(item.criado_em).split(' às ')[1] || '—' : '—';
+  const dataHora = formatarDataHoraCurta(item?.criado_em);
+  // A API atual não retorna origem (Web/Mobile/API) — só aparece aqui quando existir.
+  const metaLinha = [item?.usuario_nome || 'Sistema', dataHora, item?.origem || ''].filter(Boolean).join(' • ');
 
   return `
     <details class="timeline-item timeline-details">
       <summary class="timeline-summary">
         <div class="timeline-icone ${info.classe}">${info.icone}</div>
         <div class="timeline-conteudo-resumo">
-          <div class="timeline-meta">
-            <div class="timeline-usuario">
-              <strong>${escaparHtml(item?.usuario_nome ?? 'Sistema')}</strong>
-              <span class="timeline-badge ${info.classe}">${escaparHtml(info.label)}</span>
-            </div>
-            <small>${escaparHtml(horaCurta)}</small>
+          <div class="timeline-titulo-linha">
+            <p>${escaparHtml(item?.tipo_acao || 'Ação')}</p>
+            <span class="timeline-badge ${info.classe}">${escaparHtml(info.label)}</span>
           </div>
-          <p>${escaparHtml(item?.tipo_acao || 'Ação')}</p>
-          ${contexto ? `<span class="timeline-resumo-texto">${escaparHtml(contexto)}</span>` : ''}
+          <div class="timeline-meta-linha">${escaparHtml(metaLinha)}</div>
         </div>
         <span class="timeline-chevron">${ICONE_CHEVRON_TIMELINE}</span>
       </summary>
@@ -884,6 +897,10 @@ function abrirHistoricoCompleto() {
   const filtro = document.getElementById('historicoFiltroTipo');
   if (filtro) filtro.value = '';
   EstadoHistorico.tipoAcao = '';
+  const dataInicio = document.getElementById('historicoDataInicio');
+  const dataFim = document.getElementById('historicoDataFim');
+  if (dataInicio) dataInicio.value = '';
+  if (dataFim) dataFim.value = '';
   carregarHistoricoCompleto({ reset: true });
 }
 
@@ -897,10 +914,18 @@ async function carregarHistoricoCompleto({ reset = false } = {}) {
   }
   try {
     const params = new URLSearchParams({
-      periodo: 'todo',
       limite: EstadoHistorico.limite,
       offset: EstadoHistorico.offset
     });
+    const dataInicio = document.getElementById('historicoDataInicio')?.value || '';
+    const dataFim = document.getElementById('historicoDataFim')?.value || '';
+    if (dataInicio || dataFim) {
+      params.set('periodo', 'personalizado');
+      if (dataInicio) params.set('data_inicio', dataInicio);
+      if (dataFim) params.set('data_fim', dataFim);
+    } else {
+      params.set('periodo', 'todo');
+    }
     if (EstadoHistorico.tipoAcao) params.set('tipo_acao', EstadoHistorico.tipoAcao);
     const resp = await chamarApi(`/auditoria?${params.toString()}`);
     const registros = resp.dados || [];
@@ -921,6 +946,9 @@ document.getElementById('historicoFiltroTipo')?.addEventListener('change', (even
   EstadoHistorico.tipoAcao = evento.target.value;
   carregarHistoricoCompleto({ reset: true });
 });
+
+document.getElementById('historicoDataInicio')?.addEventListener('change', () => carregarHistoricoCompleto({ reset: true }));
+document.getElementById('historicoDataFim')?.addEventListener('change', () => carregarHistoricoCompleto({ reset: true }));
 
 document.getElementById('botaoCarregarMaisHistorico')?.addEventListener('click', () => {
   carregarHistoricoCompleto({ reset: false });

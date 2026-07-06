@@ -914,6 +914,39 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   animation: surgirModal 0.18s ease;
 }
 
+/* Variante larga: usada pelo histórico completo de auditoria, cujo conteúdo
+   (linha do tempo com campos lado a lado) se beneficia de mais espaço horizontal. */
+.caixa-modal-larga {
+  max-width: 1200px;
+}
+
+.historico-filtros {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.historico-filtro-tipo { flex: 1 1 220px; min-width: 0; }
+.historico-filtro-periodo { flex: 1 1 260px; min-width: 0; }
+
+.historico-periodo-intervalo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.historico-periodo-intervalo .campo-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.historico-periodo-separador {
+  color: var(--cor-texto-fraco);
+  flex-shrink: 0;
+}
+
 @keyframes surgirModal {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -1066,45 +1099,25 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   min-width: 0;
 }
 
-.timeline-meta {
+.timeline-titulo-linha {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  margin-bottom: 6px;
   flex-wrap: wrap;
 }
 
-.timeline-usuario {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.timeline-meta strong {
-  font-size: 14px;
-  color: var(--cor-texto);
-}
-
-.timeline-meta small {
-  color: var(--cor-texto-suave);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.timeline-summary p {
-  margin: 0 0 4px;
-  font-size: 14px;
-  line-height: 1.5;
+.timeline-titulo-linha p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.4;
   font-weight: 600;
   color: var(--cor-texto);
 }
 
-.timeline-resumo-texto {
-  display: block;
+.timeline-meta-linha {
+  margin-top: 4px;
   color: var(--cor-texto-suave);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.45;
 }
 
@@ -1119,21 +1132,27 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   text-transform: uppercase;
 }
 
-/* Conteúdo expandido: lista simples de linhas "rótulo em cima / valor embaixo" —
-   sem caixas, sem tabelas, sem blocos grandes. Leitura rápida, uma informação por linha. */
+/* Conteúdo expandido: sem caixas, sem tabelas, sem blocos grandes — cada
+   informação é só um rótulo em cima e o valor embaixo. Nos tipos que não são
+   edição, esses pares ficam lado a lado numa grade que se ajusta à largura
+   disponível (uma linha só quando o modal é largo o suficiente). */
 .timeline-detalhes {
   border-top: 1px solid var(--cor-borda);
   padding: 16px 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
   animation: abrirDetalhe 0.2s ease;
+}
+
+.timeline-detalhes-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px 28px;
 }
 
 .linha-detalhe {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .linha-detalhe-label {
@@ -1148,44 +1167,60 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   font-size: 14.5px;
   font-weight: 600;
   color: var(--cor-texto);
+  overflow-wrap: anywhere;
 }
 
-/* Cabeçalho da seção "Alterações", dentro de um card de edição */
-.timeline-secao-titulo {
+/* Edição: identificação do registro (não mudou) + duas colunas "como era" /
+   "como ficou", lado a lado, mostrando somente os campos que de fato mudaram. */
+.timeline-edicao-contexto {
+  margin-bottom: 14px;
+}
+
+.timeline-edicao-comparativo {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.timeline-edicao-coluna {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.timeline-edicao-titulo {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--cor-laranja);
-  margin-top: 2px;
+  color: var(--cor-texto-suave);
+  margin-bottom: 8px;
 }
 
-/* Comparativo de uma alteração: valor antigo, seta e valor novo lado a lado,
-   logo abaixo do nome do campo (que já vem em .linha-detalhe-label). */
-.linha-alteracao-valores {
+.timeline-edicao-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
-.timeline-seta {
+.timeline-edicao-lista strong { font-weight: 600; }
+
+.timeline-edicao-coluna.antes .timeline-edicao-lista { color: var(--cor-vermelho); }
+.timeline-edicao-coluna.depois .timeline-edicao-lista { color: var(--cor-verde); }
+
+.timeline-edicao-seta {
+  align-self: center;
   color: var(--cor-texto-fraco);
-  line-height: 0;
+  flex-shrink: 0;
+  padding-top: 22px;
 }
 
-.timeline-seta svg { width: 15px; height: 15px; display: block; }
-
-.timeline-valor {
-  padding: 4px 11px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.timeline-valor.antigo { background: var(--cor-vermelho-suave); color: var(--cor-vermelho); }
-.timeline-valor.novo { background: var(--cor-verde-suave); color: var(--cor-verde); }
+.timeline-edicao-seta svg { width: 18px; height: 18px; display: block; }
 
 /* Rodapé da timeline do dashboard */
 .timeline-rodape {
