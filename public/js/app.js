@@ -629,13 +629,6 @@ function renderizarCentroDeAlertas(alertas) {
   `;
 }
 
-function formatarDataHora(dataISO) {
-  if (!dataISO) return '—';
-  const valor = new Date(dataISO);
-  if (Number.isNaN(valor.getTime())) return '—';
-  return valor.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-}
-
 function parsearDetalhesAuditoria(item) {
   if (!item?.detalhes) return null;
   if (typeof item.detalhes === 'object') return item.detalhes;
@@ -654,106 +647,157 @@ const ICONES_LINHA_TEMPO = {
   atualizacao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
   exclusao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
   pagamento: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
-  cartao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>',
   padrao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 };
 const ICONE_SETA_TIMELINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>';
 const ICONE_CHEVRON_TIMELINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 
-// Classifica a ação em uma das 6 categorias visuais da timeline (cor do círculo/badge):
-// azul = atualizações, verde = cadastros, roxo = pagamentos, laranja = cartões,
-// cinza = login/logout/senha, vermelho = exclusões.
+// Classifica a ação em uma das 5 categorias visuais da timeline (cor do círculo/badge),
+// conforme o verbo da ação — independente da entidade (despesa, cartão, receita etc.):
+// verde = cadastro, roxo = pagamento, laranja = edição/atualização, vermelho = exclusão,
+// azul = login/logout/senha.
 function obterInfoTimeline(item) {
   const tipo = String(item?.tipo_acao || '').toLowerCase();
   let categoria = 'padrao';
-  if (tipo.includes('cart')) categoria = 'cartao';
-  else if (tipo.includes('pagamento') || tipo.includes('fatura') || tipo.includes('estorno')) categoria = 'pagamento';
-  else if (tipo.includes('login') || tipo.includes('logout') || tipo.includes('senha')) categoria = 'login';
-  else if (tipo.includes('exclus') || tipo.includes('remoç') || tipo.includes('remoc')) categoria = 'exclusao';
-  else if (tipo.includes('cadastro') || tipo.includes('registro')) categoria = 'cadastro';
-  else if (tipo.includes('atualiza')) categoria = 'atualizacao';
-  return {
-    icone: ICONES_LINHA_TEMPO[categoria],
-    classe: `linha-tempo-${categoria}`,
-    label: item?.tipo_acao || 'Ação'
-  };
+  let label = 'Ação';
+  if (tipo.includes('login') || tipo.includes('logout') || tipo.includes('senha')) {
+    categoria = 'login';
+    label = tipo.includes('logout') ? 'Logout' : (tipo.includes('senha') ? 'Senha' : 'Login');
+  } else if (tipo.includes('pagamento') || tipo.includes('fatura') || tipo.includes('estorno')) {
+    categoria = 'pagamento';
+    label = 'Pagamento';
+  } else if (tipo.includes('exclus') || tipo.includes('remoç') || tipo.includes('remoc')) {
+    categoria = 'exclusao';
+    label = 'Exclusão';
+  } else if (tipo.includes('cadastro') || tipo.includes('registro')) {
+    categoria = 'cadastro';
+    label = 'Cadastro';
+  } else if (tipo.includes('atualiza') || tipo.includes('redefini')) {
+    categoria = 'atualizacao';
+    label = 'Edição';
+  }
+  return { icone: ICONES_LINHA_TEMPO[categoria], classe: `linha-tempo-${categoria}`, label };
 }
 
-// Constrói o conteúdo expandido do card a partir de "blocos" independentes.
-// Cada bloco só entra na lista se tiver dado real e válido para mostrar; se, ao final,
-// nenhum bloco reconhecido existir (ex.: "detalhes" com um formato inesperado/antigo),
-// caímos num parágrafo com a descrição da ação — o painel expandido nunca fica vazio.
+// Nomes de rótulo mais curtos/legíveis para exibição (a informação em si continua
+// vindo direto do backend — isto é só um ajuste cosmético de texto).
+const RENOMEAR_LABEL_CAMPO = { 'Data de recebimento': 'Recebimento' };
+
+// Rótulo usado para identificar "de qual registro" se trata (ex.: a descrição da
+// despesa, o nome do cartão), conforme a entidade da ação.
+const LABEL_IDENTIFICADOR_POR_ENTIDADE = {
+  despesa: 'Descrição', receita: 'Descrição', parcelamento: 'Descrição', parcela: 'Descrição',
+  pagamento: 'Descrição', cartao: 'Nome', usuario: 'Nome'
+};
+
+// Campos que existem nos dados mas não ajudam a entender o que aconteceu num cadastro/
+// exclusão (ex.: "Valor pago" e "Status" sempre começam zerados/"Pendente" ao criar uma
+// despesa) — não fazem sentido para nenhuma entidade EXCETO pagamento, onde "Valor pago"
+// é a própria informação principal.
+const CAMPOS_OCULTOS_PADRAO = ['Valor pago', 'Status'];
+
+// Ordem de leitura preferida quando há mais de um campo para mostrar.
+const ORDEM_CAMPOS_PREFERIDA = ['Descrição', 'Nome do cartão', 'Categoria', 'Valor', 'Valor pago', 'Recebimento', 'Vencimento', 'Status'];
+
+// Em ações onde o backend não tem nenhum campo identificador para o registro afetado
+// (ex.: ativar/bloquear usuário só recebe { ativo }), o próprio backend cai num texto
+// de reserva genérico. Não faz sentido mostrar isso como se identificasse o registro.
+function valorIdentificadorValido(valor) {
+  return typeof valor === 'string' && valor.trim() && valor.trim() !== 'Registro afetado';
+}
+
+function formatarDataHoraCurta(dataISO) {
+  if (!dataISO) return '—';
+  const valor = new Date(dataISO);
+  if (Number.isNaN(valor.getTime())) return '—';
+  const data = valor.toLocaleDateString('pt-BR');
+  const hora = valor.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${data} às ${hora}`;
+}
+
+function linhaDetalheHtml(label, valor) {
+  return `<div class="linha-detalhe"><span class="linha-detalhe-label">${escaparHtml(label)}</span><span class="linha-detalhe-valor">${escaparHtml(valor)}</span></div>`;
+}
+
+function linhaAlteracaoHtml(campo, de, para) {
+  return `
+    <div class="linha-detalhe">
+      <span class="linha-detalhe-label">${escaparHtml(campo)}</span>
+      <div class="linha-alteracao-valores">
+        <span class="timeline-valor antigo">${escaparHtml(de ?? '—')}</span>
+        <span class="timeline-seta">${ICONE_SETA_TIMELINE}</span>
+        <span class="timeline-valor novo">${escaparHtml(para ?? '—')}</span>
+      </div>
+    </div>`;
+}
+
+function ordenarCamposParaExibicao(campos) {
+  return [...campos].sort((a, b) => {
+    const ia = ORDEM_CAMPOS_PREFERIDA.indexOf(RENOMEAR_LABEL_CAMPO[a.campo] || a.campo);
+    const ib = ORDEM_CAMPOS_PREFERIDA.indexOf(RENOMEAR_LABEL_CAMPO[b.campo] || b.campo);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+}
+
+// Constrói o conteúdo expandido do card como uma lista simples de linhas
+// "rótulo em cima / valor embaixo" — sem caixas, sem tabelas, sem textos genéricos
+// como "Resumo" ou "Detalhes". Mostra somente os campos que existem e são relevantes
+// para aquele tipo de ação; se nada reconhecido existir, cai num resumo textual básico
+// (usuário + data) — o painel expandido nunca fica vazio.
 function renderizarDetalhesTimeline(item) {
   const detalhes = parsearDetalhesAuditoria(item);
-  const textoFallback = (detalhes && typeof detalhes.titulo === 'string' && detalhes.titulo.trim())
-    || item?.descricao
-    || 'Registro de auditoria enviado pelo sistema.';
-
-  const blocos = [];
+  const dataHora = formatarDataHoraCurta(item?.criado_em);
+  const linhas = [];
 
   if (detalhes && typeof detalhes === 'object') {
+    const entidade = detalhes.entidade;
     const registro = detalhes.registro;
+    const ehPagamento = entidade === 'pagamento';
     const ehExclusao = detalhes.tipo === 'exclusao';
+    const labelIdentificador = LABEL_IDENTIFICADOR_POR_ENTIDADE[entidade] || 'Registro';
 
-    if (registro && typeof registro === 'object' && registro.valor) {
-      blocos.push(`
-        <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
-          <span class="timeline-card-label">${escaparHtml(registro.titulo || 'Registro afetado')}</span>
-          <strong>${escaparHtml(registro.valor)}</strong>
-        </div>`);
-    }
-
-    const mudancasValidas = Array.isArray(detalhes.mudancas)
-      ? detalhes.mudancas.filter(m => m && typeof m === 'object' && m.campo)
-      : [];
-    const camposValidos = Array.isArray(detalhes.campos)
-      ? detalhes.campos.filter(c => c && typeof c === 'object' && c.campo)
-      : [];
-
-    if (detalhes.tipo === 'alteracao' && mudancasValidas.length) {
-      blocos.push(`
-        <div class="timeline-card">
-          <span class="timeline-card-label">O que foi alterado</span>
-          <div class="timeline-lista-campos">
-            ${mudancasValidas.map(mudanca => `
-              <div class="timeline-comparativo">
-                <div class="timeline-comparativo-titulo">${escaparHtml(mudanca.campo)}</div>
-                <span class="timeline-valor antigo">${escaparHtml(mudanca.de ?? '—')}</span>
-                <span class="timeline-seta">${ICONE_SETA_TIMELINE}</span>
-                <span class="timeline-valor novo">${escaparHtml(mudanca.para ?? '—')}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>`);
-    } else if (camposValidos.length) {
-      blocos.push(`
-        <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
-          <span class="timeline-card-label">${ehExclusao ? 'Registro excluído' : 'Detalhes'}</span>
-          <div class="timeline-lista-campos">
-            ${camposValidos.map(campo => `
-              <div class="timeline-campo">
-                <strong>${escaparHtml(campo.campo)}</strong>
-                <span>${escaparHtml(campo.valor ?? '—')}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>`);
-    }
-
-    if (ehExclusao && detalhes.motivo) {
-      blocos.push(`
-        <div class="timeline-card timeline-card-exclusao">
-          <span class="timeline-card-label">Motivo</span>
-          <strong>${escaparHtml(detalhes.motivo)}</strong>
-        </div>`);
+    if (detalhes.tipo === 'alteracao') {
+      const mudancasValidas = Array.isArray(detalhes.mudancas)
+        ? detalhes.mudancas.filter(m => m && typeof m === 'object' && m.campo)
+        : [];
+      if (registro && typeof registro === 'object' && valorIdentificadorValido(registro.valor)) {
+        linhas.push(linhaDetalheHtml(labelIdentificador, registro.valor));
+      }
+      if (mudancasValidas.length) {
+        linhas.push(`<div class="timeline-secao-titulo">Alterações</div>`);
+        mudancasValidas.forEach(m => linhas.push(linhaAlteracaoHtml(m.campo, m.de, m.para)));
+      }
+    } else {
+      const camposValidos = Array.isArray(detalhes.campos)
+        ? detalhes.campos.filter(c => c && typeof c === 'object' && c.campo && (ehPagamento || !CAMPOS_OCULTOS_PADRAO.includes(c.campo)))
+        : [];
+      ordenarCamposParaExibicao(camposValidos).forEach(campo => {
+        const rotulo = RENOMEAR_LABEL_CAMPO[campo.campo] || campo.campo;
+        linhas.push(linhaDetalheHtml(rotulo, campo.valor ?? '—'));
+      });
+      if (!ehExclusao) {
+        linhas.push(linhaDetalheHtml(ehPagamento ? 'Data do pagamento' : 'Data', dataHora));
+      }
+      if (ehExclusao && detalhes.motivo) {
+        linhas.push(linhaDetalheHtml('Motivo', detalhes.motivo));
+      }
     }
   }
 
-  if (!blocos.length) {
-    blocos.push(`<p class="timeline-paragrafo">${escaparHtml(textoFallback)}</p>`);
+  if (!linhas.length) {
+    // Login/Logout/Alteração de senha (sem "detalhes" estruturado) ou qualquer formato
+    // não reconhecido — nunca deixamos o painel vazio.
+    linhas.push(linhaDetalheHtml('Usuário', item?.usuario_nome || 'Sistema'));
+    linhas.push(linhaDetalheHtml('Data', dataHora));
+    // A API atual não retorna origem (Web/Mobile/API), IP, dispositivo ou navegador —
+    // por isso só aparecem aqui quando (e se) existirem nos dados, sem inventar valor.
+    if (item?.origem) linhas.push(linhaDetalheHtml('Origem', item.origem));
+    if (item?.ip) linhas.push(linhaDetalheHtml('IP', item.ip));
+    if (item?.dispositivo) linhas.push(linhaDetalheHtml('Dispositivo', item.dispositivo));
+    if (item?.navegador) linhas.push(linhaDetalheHtml('Navegador', item.navegador));
   }
 
-  return `<div class="timeline-detalhes">${blocos.join('')}</div>`;
+  return `<div class="timeline-detalhes">${linhas.join('')}</div>`;
 }
 
 function montarItemTimelineHtml(item) {
@@ -765,17 +809,8 @@ function montarItemTimelineHtml(item) {
 
   const info = obterInfoTimeline(item);
   const detalhes = parsearDetalhesAuditoria(item);
-  const titulo = detalhes?.titulo || item?.descricao || 'Alteração registrada';
-
-  // A API atual não retorna IP, dispositivo, navegador ou origem (Web/Mobile/API) —
-  // por isso essas informações só aparecem aqui quando (e se) existirem nos dados,
-  // sem nunca inventar um valor padrão.
-  const origem = item?.origem || detalhes?.origem || '';
-  const dataObj = item?.criado_em ? new Date(item.criado_em) : null;
-  const dataValida = dataObj && !Number.isNaN(dataObj.getTime());
-  const dataCurta = dataValida ? dataObj.toLocaleDateString('pt-BR') : '—';
-  const horaCurta = dataValida ? dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
-  const linhaMeta = [dataCurta, horaCurta, origem].filter(Boolean).join(' • ');
+  const contexto = valorIdentificadorValido(detalhes?.registro?.valor) ? detalhes.registro.valor : '';
+  const horaCurta = item?.criado_em ? formatarDataHoraCurta(item.criado_em).split(' às ')[1] || '—' : '—';
 
   return `
     <details class="timeline-item timeline-details">
@@ -787,10 +822,10 @@ function montarItemTimelineHtml(item) {
               <strong>${escaparHtml(item?.usuario_nome ?? 'Sistema')}</strong>
               <span class="timeline-badge ${info.classe}">${escaparHtml(info.label)}</span>
             </div>
-            <small>${horaCurta}</small>
+            <small>${escaparHtml(horaCurta)}</small>
           </div>
-          <p>${escaparHtml(titulo)}</p>
-          <span class="timeline-resumo-texto">${escaparHtml(linhaMeta)}</span>
+          <p>${escaparHtml(item?.tipo_acao || 'Ação')}</p>
+          ${contexto ? `<span class="timeline-resumo-texto">${escaparHtml(contexto)}</span>` : ''}
         </div>
         <span class="timeline-chevron">${ICONE_CHEVRON_TIMELINE}</span>
       </summary>

@@ -1048,14 +1048,14 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
 
 .timeline-icone svg { width: 16px; height: 16px; }
 
-/* Categorias de cor da timeline: azul = atualizações, verde = cadastros,
-   roxo = pagamentos, laranja = cartões, cinza = login, vermelho = exclusões. */
-.linha-tempo-atualizacao { background: var(--cor-azul-suave); color: var(--cor-azul-escuro); }
+/* Categorias de cor da timeline, por verbo da ação (independente da entidade):
+   verde = cadastro, roxo = pagamento, laranja = edição/atualização,
+   vermelho = exclusão, azul = login/logout/senha. */
 .linha-tempo-cadastro    { background: var(--cor-verde-suave); color: #15803d; }
 .linha-tempo-pagamento   { background: var(--cor-roxo-suave); color: var(--cor-roxo); }
-.linha-tempo-cartao      { background: var(--cor-laranja-suave); color: var(--cor-laranja); }
-.linha-tempo-login       { background: var(--cor-fundo); color: var(--cor-texto-suave); }
+.linha-tempo-atualizacao { background: var(--cor-laranja-suave); color: var(--cor-laranja); }
 .linha-tempo-exclusao    { background: var(--cor-vermelho-suave); color: var(--cor-vermelho); }
+.linha-tempo-login       { background: var(--cor-azul-suave); color: var(--cor-azul-escuro); }
 .linha-tempo-padrao      { background: var(--cor-fundo); color: var(--cor-texto-suave); }
 
 .timeline-conteudo-resumo {
@@ -1116,103 +1116,54 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   text-transform: uppercase;
 }
 
+/* Conteúdo expandido: lista simples de linhas "rótulo em cima / valor embaixo" —
+   sem caixas, sem tabelas, sem blocos grandes. Leitura rápida, uma informação por linha. */
 .timeline-detalhes {
   border-top: 1px solid var(--cor-borda);
-  padding: 16px 18px 18px;
-  display: grid;
-  gap: 12px;
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   animation: abrirDetalhe 0.2s ease;
 }
 
-.timeline-paragrafo {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--cor-texto-suave);
-}
-
-.timeline-card {
-  background: var(--cor-fundo);
-  border-radius: 12px;
-  border: 1px solid var(--cor-borda);
-  padding: 12px 13px;
-  display: grid;
-  gap: 6px;
-}
-
-.timeline-card.timeline-card-exclusao {
-  background: var(--cor-vermelho-suave);
-  border-color: #f7c5c0;
-}
-
-.timeline-card.timeline-card-exclusao .timeline-card-label { color: var(--cor-vermelho); }
-
-.timeline-card-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--cor-texto-suave);
-}
-
-.timeline-card strong {
-  font-size: 14px;
-  color: var(--cor-texto);
-}
-
-.timeline-card p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--cor-texto-suave);
-}
-
-.timeline-lista-campos {
-  display: grid;
-  gap: 10px;
-}
-
-.timeline-campo {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: var(--cor-superficie);
-  border: 1px solid var(--cor-borda);
-}
-
-.timeline-campo strong {
-  font-size: 13px;
-  color: var(--cor-texto);
-}
-
-.timeline-campo span {
-  text-align: right;
-  font-size: 13px;
-  color: var(--cor-texto-suave);
-}
-
-/* Comparativo de uma alteração: nome do campo, valor antigo, seta e valor
-   novo, sempre empilhados verticalmente (cada alteração em sua própria linha). */
-.timeline-comparativo {
+.linha-detalhe {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 12px 13px;
-  border-radius: 12px;
-  background: var(--cor-superficie);
-  border: 1px solid var(--cor-borda);
+  gap: 2px;
 }
 
-.timeline-comparativo-titulo {
-  font-size: 12px;
+.linha-detalhe-label {
+  font-size: 11px;
   font-weight: 700;
-  color: var(--cor-texto-suave);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--cor-texto-suave);
+}
+
+.linha-detalhe-valor {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+/* Cabeçalho da seção "Alterações", dentro de um card de edição */
+.timeline-secao-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cor-laranja);
+  margin-top: 2px;
+}
+
+/* Comparativo de uma alteração: valor antigo, seta e valor novo lado a lado,
+   logo abaixo do nome do campo (que já vem em .linha-detalhe-label). */
+.linha-alteracao-valores {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .timeline-seta {
@@ -1223,7 +1174,7 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
 .timeline-seta svg { width: 15px; height: 15px; display: block; }
 
 .timeline-valor {
-  padding: 5px 12px;
+  padding: 4px 11px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
@@ -1270,12 +1221,6 @@ table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
   }
   .timeline-detalhes {
     padding: 14px 15px 15px;
-  }
-  .timeline-campo {
-    flex-direction: column;
-  }
-  .timeline-campo span {
-    text-align: left;
   }
   .timeline-lista {
     padding: 18px 15px 16px 44px;
