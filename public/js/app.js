@@ -572,6 +572,10 @@ async function renderizarDashboard() {
       <div class="timeline-lista" id="timelineLista">
         <div class="estado-vazio"><p>Carregando ações recentes...</p></div>
       </div>
+      <div class="timeline-rodape">
+        <span>Mostrando as 5 alterações mais recentes</span>
+        <span>As alterações são registradas automaticamente pelo sistema.</span>
+      </div>
     </div>
   `;
   inicializarControlesPeriodo('dash');
@@ -642,18 +646,37 @@ function parsearDetalhesAuditoria(item) {
   }
 }
 
+// Ícones SVG (mesmo estilo do restante do sistema: stroke, sem preenchimento) usados
+// nos círculos da linha do tempo, por categoria de ação.
+const ICONES_LINHA_TEMPO = {
+  login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>',
+  cadastro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
+  atualizacao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
+  exclusao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
+  pagamento: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+  cartao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>',
+  padrao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
+};
+const ICONE_SETA_TIMELINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>';
+const ICONE_CHEVRON_TIMELINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+// Classifica a ação em uma das 6 categorias visuais da timeline (cor do círculo/badge):
+// azul = atualizações, verde = cadastros, roxo = pagamentos, laranja = cartões,
+// cinza = login/logout/senha, vermelho = exclusões.
 function obterInfoTimeline(item) {
-  const tipo = String(item?.tipo_acao || 'Ação').toLowerCase();
-  if (tipo.includes('login')) return { icone: '🔐', classe: 'timeline-badge-login', label: 'Login' };
-  if (tipo.includes('logout')) return { icone: '🚪', classe: 'timeline-badge-logout', label: 'Logout' };
-  if (tipo.includes('senha')) return { icone: '🔑', classe: 'timeline-badge-senha', label: 'Senha' };
-  if (tipo.includes('cadastro')) return { icone: '➕', classe: 'timeline-badge-cadastro', label: 'Cadastro' };
-  if (tipo.includes('atualiza')) return { icone: '✏️', classe: 'timeline-badge-atualizacao', label: 'Atualização' };
-  if (tipo.includes('exclus')) return { icone: '🗑️', classe: 'timeline-badge-exclusao', label: 'Exclusão' };
-  if (tipo.includes('pagamento') || tipo.includes('fatura')) return { icone: '💳', classe: 'timeline-badge-pagamento', label: 'Pagamento' };
-  if (tipo.includes('parcel')) return { icone: '🧾', classe: 'timeline-badge-parcelamento', label: 'Parcelamento' };
-  if (tipo.includes('usuário') || tipo.includes('usuario')) return { icone: '👤', classe: 'timeline-badge-usuario', label: 'Usuário' };
-  return { icone: '🗂️', classe: 'timeline-badge-default', label: item?.tipo_acao || 'Ação' };
+  const tipo = String(item?.tipo_acao || '').toLowerCase();
+  let categoria = 'padrao';
+  if (tipo.includes('cart')) categoria = 'cartao';
+  else if (tipo.includes('pagamento') || tipo.includes('fatura') || tipo.includes('estorno')) categoria = 'pagamento';
+  else if (tipo.includes('login') || tipo.includes('logout') || tipo.includes('senha')) categoria = 'login';
+  else if (tipo.includes('exclus') || tipo.includes('remoç') || tipo.includes('remoc')) categoria = 'exclusao';
+  else if (tipo.includes('cadastro') || tipo.includes('registro')) categoria = 'cadastro';
+  else if (tipo.includes('atualiza')) categoria = 'atualizacao';
+  return {
+    icone: ICONES_LINHA_TEMPO[categoria],
+    classe: `linha-tempo-${categoria}`,
+    label: item?.tipo_acao || 'Ação'
+  };
 }
 
 function renderizarDetalhesTimeline(item) {
@@ -665,23 +688,15 @@ function renderizarDetalhesTimeline(item) {
       </div>`;
   }
 
-  const info = obterInfoTimeline(item);
-  const titulo = detalhes.titulo || item?.descricao || 'Alteração registrada';
-  const resumo = detalhes.resumo || detalhes.registro?.valor || item?.descricao || 'Detalhes disponíveis para análise.';
   const registro = detalhes.registro;
+  const ehExclusao = detalhes.tipo === 'exclusao';
 
-  let corpo = `
-    <div class="timeline-detalhes">
-      <div class="timeline-card">
-        <span class="timeline-card-label">Resumo</span>
-        <strong>${escaparHtml(titulo)}</strong>
-        <p>${escaparHtml(resumo)}</p>
-      </div>`;
+  let corpo = `<div class="timeline-detalhes">`;
 
   if (registro?.valor) {
     corpo += `
-      <div class="timeline-card">
-        <span class="timeline-card-label">Registro afetado</span>
+      <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
+        <span class="timeline-card-label">${escaparHtml(registro.titulo || 'Registro afetado')}</span>
         <strong>${escaparHtml(registro.valor)}</strong>
       </div>`;
   }
@@ -694,24 +709,17 @@ function renderizarDetalhesTimeline(item) {
           ${detalhes.mudancas.map(mudanca => `
             <div class="timeline-comparativo">
               <div class="timeline-comparativo-titulo">${escaparHtml(mudanca.campo)}</div>
-              <div class="timeline-comparativo-grid">
-                <div class="timeline-valor antigo">
-                  <span>De</span>
-                  <strong>${escaparHtml(mudanca.de || '—')}</strong>
-                </div>
-                <div class="timeline-valor novo">
-                  <span>Para</span>
-                  <strong>${escaparHtml(mudanca.para || '—')}</strong>
-                </div>
-              </div>
+              <span class="timeline-valor antigo">${escaparHtml(mudanca.de || '—')}</span>
+              <span class="timeline-seta">${ICONE_SETA_TIMELINE}</span>
+              <span class="timeline-valor novo">${escaparHtml(mudanca.para || '—')}</span>
             </div>
           `).join('')}
         </div>
       </div>`;
   } else if (Array.isArray(detalhes.campos) && detalhes.campos.length) {
     corpo += `
-      <div class="timeline-card">
-        <span class="timeline-card-label">Detalhes</span>
+      <div class="timeline-card${ehExclusao ? ' timeline-card-exclusao' : ''}">
+        <span class="timeline-card-label">${ehExclusao ? 'Registro excluído' : 'Detalhes'}</span>
         <div class="timeline-lista-campos">
           ${detalhes.campos.map(campo => `
             <div class="timeline-campo">
@@ -723,9 +731,9 @@ function renderizarDetalhesTimeline(item) {
       </div>`;
   }
 
-  if (detalhes.tipo === 'exclusao' && detalhes.motivo) {
+  if (ehExclusao && detalhes.motivo) {
     corpo += `
-      <div class="timeline-card">
+      <div class="timeline-card timeline-card-exclusao">
         <span class="timeline-card-label">Motivo</span>
         <strong>${escaparHtml(detalhes.motivo)}</strong>
       </div>`;
@@ -739,7 +747,17 @@ function montarItemTimelineHtml(item) {
   const info = obterInfoTimeline(item);
   const detalhes = parsearDetalhesAuditoria(item);
   const titulo = detalhes?.titulo || item?.descricao || 'Alteração registrada';
-  const resumo = detalhes?.resumo || detalhes?.registro?.valor || item?.descricao || 'Detalhes disponíveis para análise.';
+
+  // A API atual não retorna IP, dispositivo, navegador ou origem (Web/Mobile/API) —
+  // por isso essas informações só aparecem aqui quando (e se) existirem nos dados,
+  // sem nunca inventar um valor padrão.
+  const origem = item.origem || detalhes?.origem || '';
+  const dataObj = item.criado_em ? new Date(item.criado_em) : null;
+  const dataValida = dataObj && !Number.isNaN(dataObj.getTime());
+  const dataCurta = dataValida ? dataObj.toLocaleDateString('pt-BR') : '—';
+  const horaCurta = dataValida ? dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const linhaMeta = [dataCurta, horaCurta, origem].filter(Boolean).join(' • ');
+
   return `
     <details class="timeline-item timeline-details">
       <summary class="timeline-summary">
@@ -750,12 +768,12 @@ function montarItemTimelineHtml(item) {
               <strong>${escaparHtml(item.usuario_nome || 'Sistema')}</strong>
               <span class="timeline-badge ${info.classe}">${escaparHtml(info.label)}</span>
             </div>
-            <small>${formatarDataHora(item.criado_em)}</small>
+            <small>${horaCurta}</small>
           </div>
           <p>${escaparHtml(titulo)}</p>
-          <span class="timeline-resumo-texto">${escaparHtml(resumo)}</span>
+          <span class="timeline-resumo-texto">${escaparHtml(linhaMeta)}</span>
         </div>
-        <span class="timeline-chevron">▾</span>
+        <span class="timeline-chevron">${ICONE_CHEVRON_TIMELINE}</span>
       </summary>
       ${renderizarDetalhesTimeline(item)}
     </details>`;
@@ -765,7 +783,7 @@ async function carregarTimeline() {
   const container = document.getElementById('timelineLista');
   if (!container) return;
   try {
-    const resp = await chamarApi('/auditoria?limite=20');
+    const resp = await chamarApi('/auditoria?limite=5');
     const registros = resp.dados || [];
     if (!registros.length) {
       container.innerHTML = `<div class="estado-vazio"><p>Nenhuma ação registrada ainda.</p></div>`;
