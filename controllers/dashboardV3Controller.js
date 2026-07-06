@@ -164,8 +164,52 @@ module.exports = { async resumo(req,res) {
       comprometimentos[meses]=Number(r[0].total);
     }
 
-    const [alertasContas]=await db.query(`SELECT descricao,data_vencimento,'Conta' tipo FROM despesas WHERE status IN ('Pendente','Atrasado') AND data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(),INTERVAL 1 DAY)
-      UNION ALL SELECT p.descricao_compra,pa.data_vencimento,p.tipo_obrigacao FROM parcelas pa JOIN parcelamentos p ON p.id=pa.parcelamento_id WHERE pa.status='Pendente' AND pa.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(),INTERVAL 1 DAY)`);
+    // Centro de Alertas: vencidas (qualquer data no passado), vencem hoje e vencem nos
+    // próximos 7 dias — sempre ignorando lançamentos já pagos. A prioridade é calculada
+    // a partir da data final já unificada, então ordenar por data_vencimento já entrega
+    // vencidas (mais antigas primeiro) → hoje → próximos 7 dias, nesta ordem.
+    const [alertasRows]=await db.query(`
+      SELECT *,
+        CASE WHEN data_vencimento < CURDATE() THEN 'vencida'
+             WHEN data_vencimento = CURDATE() THEN 'hoje'
+             ELSE 'proximos7' END AS prioridade
+      FROM (
+        SELECT d.descricao descricao, d.data_vencimento data_vencimento, d.valor valor,
+          d.categoria categoria, COALESCE(u.nome,'Casal') usuario_nome, COALESCE(u.cor,'#4A7FE8') usuario_cor
+        FROM despesas d LEFT JOIN usuarios u ON u.id=d.usuario_id
+        WHERE d.status IN ('Pendente','Atrasado')
+
+        UNION ALL
+
+        SELECT p.descricao_compra, pa.data_vencimento, pa.valor,
+          COALESCE(NULLIF(p.categoria,''), p.tipo_obrigacao) categoria,
+          COALESCE(u.nome,'') usuario_nome, COALESCE(u.cor,'#888') usuario_cor
+        FROM parcelas pa JOIN parcelamentos p ON p.id=pa.parcelamento_id
+        LEFT JOIN usuarios u ON u.id=pa.usuario_id
+        WHERE pa.status='Pendente' AND p.tipo_obrigacao!='Cartão de Crédito'
+
+        UNION ALL
+
+        SELECT CONCAT('Fatura ', MAX(COALESCE(c.nome_cartao,''))) descricao,
+          DATE(CONCAT(YEAR(MIN(pa.data_vencimento)),'-',LPAD(MONTH(MIN(pa.data_vencimento)),2,'0'),'-',LPAD(MAX(c.dia_vencimento),2,'0'))) data_vencimento,
+          SUM(pa.valor) valor,
+          'Cartão de Crédito' categoria,
+          MAX(CASE WHEN c.rateado=1 OR p.rateado=1 THEN 'Casal' ELSE COALESCE(u.nome,'') END) usuario_nome,
+          MAX(CASE WHEN c.rateado=1 OR p.rateado=1 THEN '#4A7FE8' ELSE COALESCE(u.cor,'#888') END) usuario_cor
+        FROM parcelas pa JOIN parcelamentos p ON p.id=pa.parcelamento_id
+        LEFT JOIN usuarios u ON u.id=pa.usuario_id
+        LEFT JOIN cartoes c ON c.id=p.cartao_id
+        WHERE pa.status='Pendente' AND p.tipo_obrigacao='Cartão de Crédito'
+        GROUP BY p.cartao_id, YEAR(pa.data_vencimento), MONTH(pa.data_vencimento)
+      ) base
+      WHERE data_vencimento <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+      ORDER BY data_vencimento ASC
+    `);
+    const resumoAlertas={
+      vencidas: alertasRows.filter(a=>a.prioridade==='vencida').length,
+      hoje: alertasRows.filter(a=>a.prioridade==='hoje').length,
+      proximos7: alertasRows.filter(a=>a.prioridade==='proximos7').length
+    };
 
     const [saldoRows]=await db.query(`SELECT
       (SELECT COALESCE(SUM(valor),0) FROM receitas WHERE data_recebimento<=CURDATE())-
@@ -184,7 +228,9 @@ module.exports = { async resumo(req,res) {
       },
       semaforo,resumoPorPessoa,proximasContas,
       parcelamentosAtivos:await ParcelamentoModel.parcelasAtivasResumo(),
-      despesasPorCategoria,despesasCartaoPorCategoria,alertas:alertasContas,comprometimentos,
+      despesasPorCategoria,despesasCartaoPorCategoria,
+      alertas:{itens:alertasRows,resumo:resumoAlertas},
+      comprometimentos,
       previsaoCaixa:{saldoAtual,proximosCompromissos:comprometimentos[1],saldoProjetado:saldoAtual-comprometimentos[1]}
     }});
   } catch(err){res.status(500).json({sucesso:false,mensagem:'Erro ao carregar dashboard.',erro:err.message});}

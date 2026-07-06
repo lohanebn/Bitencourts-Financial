@@ -518,9 +518,7 @@ async function renderizarDashboard() {
     </div>
 
 
-    <div class="painel"><div class="painel-cabecalho"><h3>Centro de Alertas</h3></div><div class="painel-corpo com-padding">
-      ${d.alertas?.length?d.alertas.map(a=>`<div class="badge badge-atrasado" style="margin:4px">${formatarData(a.data_vencimento)} · ${escaparHtml(a.descricao)} · ${escaparHtml(a.tipo)}</div>`).join(''):'<span style="color:var(--cor-texto-suave)">Nenhum vencimento crítico hoje ou amanhã.</span>'}
-    </div></div>
+    ${renderizarCentroDeAlertas(d.alertas)}
 
     <div class="painel"><div class="painel-cabecalho"><h3>Calendário Financeiro</h3></div><div class="calendario-financeiro">
       ${d.proximasContas.length?d.proximasContas.map(c=>`<div class="evento-calendario" title="${escaparHtml(c.descricao)} — ${formatarMoeda(c.valor)}"><strong>${String(c.data_vencimento).slice(8,10)}</strong><span>${escaparHtml(c.descricao)}</span><small>${formatarMoeda(c.valor)} · ${escaparHtml(c.tipo_obrigacao||c.categoria)}</small></div>`).join(''):'<div class="estado-vazio"><p>Sem eventos no período.</p></div>'}
@@ -580,6 +578,51 @@ async function renderizarDashboard() {
   document.querySelectorAll('#filtrosDashboard input,#filtrosDashboard select').forEach(el=>el.addEventListener('change',()=>{lerPeriodo('dash');renderizarDashboard();}));
   document.getElementById('botaoVerHistoricoCompleto')?.addEventListener('click', abrirHistoricoCompleto);
   await carregarTimeline();
+}
+
+const ROTULOS_PRIORIDADE_ALERTA = { vencida: 'Vencida', hoje: 'Vence hoje', proximos7: 'Próximos 7 dias' };
+
+function renderizarCentroDeAlertas(alertas) {
+  const itens = alertas?.itens || [];
+  const resumo = alertas?.resumo || { vencidas: 0, hoje: 0, proximos7: 0 };
+  const temVencidas = resumo.vencidas > 0;
+
+  const resumoHtml = `
+    <div class="alertas-resumo">
+      <span class="alertas-resumo-item vencida"><strong>${resumo.vencidas}</strong> ${resumo.vencidas === 1 ? 'vencida' : 'vencidas'}</span>
+      <span class="alertas-resumo-item hoje"><strong>${resumo.hoje}</strong> ${resumo.hoje === 1 ? 'vence hoje' : 'vencem hoje'}</span>
+      <span class="alertas-resumo-item proximos7"><strong>${resumo.proximos7}</strong> nos próximos 7 dias</span>
+    </div>
+  `;
+
+  const corpoHtml = itens.length
+    ? `<div class="alertas-lista">${itens.map(item => `
+        <div class="alerta-item alerta-${item.prioridade}">
+          <span class="alerta-cor-prioridade" title="${ROTULOS_PRIORIDADE_ALERTA[item.prioridade]}"></span>
+          <div class="alerta-conteudo">
+            <div class="alerta-linha-principal">
+              <strong>${escaparHtml(item.descricao)}</strong>
+              <span class="valor-negativo">${formatarMoeda(item.valor)}</span>
+            </div>
+            <div class="alerta-linha-meta">
+              <span>${formatarData(item.data_vencimento)}</span>
+              <span>${escaparHtml(item.categoria)}</span>
+              <span class="etiqueta-pessoa"><span class="bolinha-pessoa" style="background:${item.usuario_cor}"></span>${escaparHtml(item.usuario_nome)}</span>
+            </div>
+          </div>
+        </div>
+      `).join('')}</div>`
+    : `<div class="estado-vazio alertas-vazio">✔ Nenhuma pendência financeira. Todas as contas até a data atual estão pagas.</div>`;
+
+  return `
+    <div class="painel alertas-painel ${temVencidas ? 'alertas-critico' : ''}">
+      <div class="painel-cabecalho"><h3>Centro de Alertas</h3></div>
+      <div class="painel-corpo com-padding">
+        ${resumoHtml}
+        ${corpoHtml}
+      </div>
+    </div>
+  `;
 }
 
 function formatarDataHora(dataISO) {
