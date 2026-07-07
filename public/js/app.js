@@ -708,10 +708,16 @@ function valorIdentificadorValido(valor) {
 
 function formatarDataHoraCurta(dataISO) {
   if (!dataISO) return '—';
-  const valor = new Date(dataISO);
+  // O backend envia "YYYY-MM-DD HH:MM:SS" (hora local de Brasília, sem sufixo de fuso).
+  // Esse formato com espaço não é ISO 8601 válido, então a interpretação de fuso pelo
+  // Date() varia entre navegadores. Convertendo para "YYYY-MM-DDTHH:MM:SS" garantimos
+  // que a spec trate como horário local de forma consistente em qualquer motor JS.
+  const normalizado = typeof dataISO === 'string' ? dataISO.replace(' ', 'T') : dataISO;
+  const valor = new Date(normalizado);
   if (Number.isNaN(valor.getTime())) return '—';
-  const data = valor.toLocaleDateString('pt-BR');
-  const hora = valor.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const fuso = 'America/Sao_Paulo';
+  const data = valor.toLocaleDateString('pt-BR', { timeZone: fuso });
+  const hora = valor.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: fuso });
   return `${data} às ${hora}`;
 }
 
