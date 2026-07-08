@@ -136,19 +136,21 @@ module.exports = { async resumo(req,res) {
     else psql_ncc=aplicarPeriodo(psql_ncc,pp_ncc,'pa.data_vencimento',periodo);
     const [parcelas_ncc]=await db.query(psql_ncc,pp_ncc);
 
-    // Despesas por categoria — considera apenas os valores em aberto e pendentes
+    // Despesas por categoria — valor total (cheio) do período, independente de status,
+    // igual ao critério de somaTotalPeriodo: representa o planejamento e não pode
+    // ir sumindo/encolhendo conforme as baixas forem registradas.
     const cp=[];
-    let csql=`SELECT categoria,SUM(total) total FROM (SELECT categoria,GREATEST(COALESCE(valor,0)-COALESCE(valor_pago,0),0) total FROM despesas WHERE status IN ('Pendente','Atrasado') AND 1=1`;
+    let csql=`SELECT categoria,SUM(total) total FROM (SELECT categoria,COALESCE(valor,0) total FROM despesas WHERE 1=1`;
     csql=aplicarPeriodo(csql,cp,'data_vencimento',periodo);
-    csql+=` UNION ALL SELECT CASE WHEN p.cartao_id IS NOT NULL THEN 'Cartão' ELSE p.tipo_obrigacao END categoria,GREATEST(COALESCE(pa.valor,0)-COALESCE(pa.valor_pago,0),0) total FROM parcelas pa JOIN parcelamentos p ON p.id=pa.parcelamento_id WHERE pa.status='Pendente' AND 1=1`;
+    csql+=` UNION ALL SELECT CASE WHEN p.cartao_id IS NOT NULL THEN 'Cartão' ELSE p.tipo_obrigacao END categoria,COALESCE(pa.valor,0) total FROM parcelas pa JOIN parcelamentos p ON p.id=pa.parcelamento_id WHERE 1=1`;
     csql=aplicarPeriodo(csql,cp,'pa.data_vencimento',periodo);
     csql+=`) _cat GROUP BY categoria ORDER BY total DESC`;
     const [despesasPorCategoria]=await db.query(csql,cp);
 
     const ccp=[];
-    let ccsql=`SELECT COALESCE(NULLIF(p.categoria,''),'Cartão') categoria,COALESCE(SUM(GREATEST(COALESCE(pa.valor,0)-COALESCE(pa.valor_pago,0),0)),0) total
+    let ccsql=`SELECT COALESCE(NULLIF(p.categoria,''),'Cartão') categoria,COALESCE(SUM(COALESCE(pa.valor,0)),0) total
       FROM parcelas pa JOIN parcelamentos p ON p.id=pa.parcelamento_id
-      WHERE p.cartao_id IS NOT NULL AND pa.status='Pendente'`;
+      WHERE p.cartao_id IS NOT NULL`;
     ccsql=aplicarPeriodo(ccsql,ccp,'pa.data_vencimento',periodo);
     ccsql+=` GROUP BY categoria ORDER BY total DESC`;
     const [despesasCartaoPorCategoria]=await db.query(ccsql,ccp);
