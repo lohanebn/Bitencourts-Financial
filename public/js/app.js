@@ -708,11 +708,11 @@ function valorIdentificadorValido(valor) {
 
 function formatarDataHoraCurta(dataISO) {
   if (!dataISO) return '—';
-  // O backend envia "YYYY-MM-DD HH:MM:SS" (hora local de Brasília, sem sufixo de fuso).
-  // Esse formato com espaço não é ISO 8601 válido, então a interpretação de fuso pelo
-  // Date() varia entre navegadores. Convertendo para "YYYY-MM-DDTHH:MM:SS" garantimos
-  // que a spec trate como horário local de forma consistente em qualquer motor JS.
-  const normalizado = typeof dataISO === 'string' ? dataISO.replace(' ', 'T') : dataISO;
+  // O MySQL de produção grava CURRENT_TIMESTAMP em UTC (relógio do servidor), então o
+  // backend envia "YYYY-MM-DD HH:MM:SS" já em UTC, sem sufixo de fuso. Marcamos como UTC
+  // explicitamente ("Z") e deixamos o toLocaleString converter para o horário de Brasília
+  // na exibição — sem depender de nenhuma configuração de fuso do banco/servidor.
+  const normalizado = typeof dataISO === 'string' ? `${dataISO.replace(' ', 'T')}Z` : dataISO;
   const valor = new Date(normalizado);
   if (Number.isNaN(valor.getTime())) return '—';
   const fuso = 'America/Sao_Paulo';
