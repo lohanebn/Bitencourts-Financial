@@ -16,14 +16,6 @@ const pool = mysql.createPool({
   dateStrings: true // retorna DATE/DATETIME como string (evita problemas de timezone)
 });
 
-// Servidores de hospedagem (ex.: Render) costumam rodar o MySQL com o relógio em UTC,
-// enquanto o app é usado só no horário de Brasília. Sem isto, CURRENT_TIMESTAMP/NOW()
-// gravam 3h à frente do horário real. Brasil não tem horário de verão desde 2019,
-// então o offset fixo "-03:00" é sempre correto (não depende das tabelas de fuso do MySQL).
-pool.on('connection', (conexao) => {
-  conexao.query("SET time_zone = '-03:00'");
-});
-
 // Testa a conexão ao iniciar
 async function testarConexao() {
   try {
