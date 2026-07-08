@@ -707,6 +707,59 @@ table.tabela-padrao td {
 table.tabela-padrao tr:last-child td { border-bottom: none; }
 table.tabela-padrao tbody tr:hover { background: #FBFCFE; }
 
+/* ---------------------------------------------------------------------
+   TABELAS EM MODO "COMPACTO": cada linha vira um cartão empilhado, com o
+   nome da coluna ao lado do valor. Usado em painéis estreitos (ex.: coluna
+   lateral do grid de duas colunas) onde a tabela tradicional não cabe sem
+   precisar de scroll horizontal — independente do tamanho da tela.
+   --------------------------------------------------------------------- */
+.tabela-wrapper.tabela-wrapper-compacta { overflow-x: visible; }
+
+table.tabela-compacta thead { display: none; }
+
+table.tabela-compacta,
+table.tabela-compacta tbody,
+table.tabela-compacta tr {
+  display: block;
+  width: 100%;
+}
+
+table.tabela-compacta tbody tr {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  padding: 4px 16px;
+  margin-bottom: 10px;
+}
+
+table.tabela-compacta tbody tr:last-child { margin-bottom: 0; }
+table.tabela-compacta tbody tr:hover { background: var(--cor-superficie); }
+
+table.tabela-compacta td {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--cor-borda);
+  text-align: right;
+  white-space: normal;
+}
+
+table.tabela-compacta td:last-child { border-bottom: none; }
+
+table.tabela-compacta td[data-label]::before {
+  content: attr(data-label);
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cor-texto-suave);
+  text-align: left;
+}
+
 .valor-positivo { color: var(--cor-verde); font-weight: 600; }
 .valor-negativo { color: var(--cor-vermelho); font-weight: 600; }
 

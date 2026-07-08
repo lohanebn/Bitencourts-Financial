@@ -17,7 +17,7 @@ module.exports = {
   async listarHistorico(req, res) {
     try {
       const periodo = normalizarPeriodo(req.query);
-      const historico = await PagamentoModel.listarHistorico(periodo);
+      const historico = await PagamentoModel.listarHistorico(periodo, req.query.origem || null);
       res.json({ sucesso: true, dados: historico });
     } catch (err) { res.status(500).json({ sucesso:false, mensagem:'Erro ao listar histórico.', erro:err.message }); }
   },

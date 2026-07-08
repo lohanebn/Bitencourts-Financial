@@ -535,7 +535,7 @@ async function renderizarDashboard() {
 
         <div class="painel">
           <div class="painel-cabecalho"><h3>Parcelamentos Ativos</h3></div>
-          <div class="tabela-wrapper">
+          <div class="tabela-wrapper tabela-wrapper-compacta">
             ${renderizarTabelaParcelamentosAtivos(d.parcelamentosAtivos)}
           </div>
         </div>
@@ -544,7 +544,7 @@ async function renderizarDashboard() {
       <div>
         <div class="painel">
           <div class="painel-cabecalho"><h3>Resumo por Pessoa</h3></div>
-          <div class="tabela-wrapper">
+          <div class="tabela-wrapper tabela-wrapper-compacta">
             ${renderizarTabelaResumoPessoa(d.resumoPorPessoa)}
           </div>
         </div>
@@ -963,7 +963,7 @@ document.getElementById('botaoCarregarMaisHistorico')?.addEventListener('click',
 function renderizarTabelaResumoPessoa(lista) {
   if (!lista.length) return `<div class="estado-vazio"><p>Nenhum dado disponível.</p></div>`;
   return `
-    <table class="tabela-padrao">
+    <table class="tabela-padrao tabela-compacta">
       <thead><tr><th>Pessoa</th><th>Receita</th><th>Despesas</th><th>Saldo</th></tr></thead>
       <tbody>
         ${lista.map(p => `
@@ -1006,14 +1006,13 @@ function renderizarTabelaParcelamentosAtivos(lista) {
     return `<div class="estado-vazio"><p>Nenhum parcelamento ativo no momento.</p></div>`;
   }
   return `
-    <table class="tabela-padrao">
-      <thead><tr><th>Compra</th><th>Parcela Atual</th><th>Total Parcelas</th><th>Valor Parcela</th><th>Valor Restante</th></tr></thead>
+    <table class="tabela-padrao tabela-compacta">
+      <thead><tr><th>Compra</th><th>Parcela</th><th>Valor Parcela</th><th>Valor Restante</th></tr></thead>
       <tbody>
         ${lista.map(p => `
           <tr>
             <td data-label="Compra">${escaparHtml(p.descricao_compra)}</td>
-            <td data-label="Parcela Atual">${p.parcela_atual}</td>
-            <td data-label="Total Parcelas">${p.qtd_parcelas}</td>
+            <td data-label="Parcela">${p.parcela_atual}/${p.qtd_parcelas}</td>
             <td data-label="Valor Parcela">${formatarMoeda(p.valor_parcela)}</td>
             <td data-label="Valor Restante" class="valor-negativo">${formatarMoeda(p.valor_restante)}</td>
           </tr>
@@ -2032,7 +2031,17 @@ async function renderizarPagamentos() {
       <div class="painel-cabecalho">
         <h3 id="tituloBaixas">Baixas do Período</h3>
       </div>
-      <div class="barra-filtros" id="filtrosBaixas" style="padding:10px 16px 0;">${controlesPeriodo('bxs')}</div>
+      <div class="barra-filtros" id="filtrosBaixas" style="padding:10px 16px 0;">
+        ${controlesPeriodo('bxs')}
+        <select class="campo-select" id="filtroOrigemBaixas" style="min-width:170px">
+          <option value="">Todas as origens</option>
+          <option value="Despesas">Despesas</option>
+          <option value="Cartão de Crédito">Cartão de Crédito</option>
+          <option value="Empréstimo">Empréstimo</option>
+          <option value="Financiamento">Financiamento</option>
+          <option value="Consórcio">Consórcio</option>
+        </select>
+      </div>
       <div id="historicoPagamentos"></div>
     </div>`;
   inicializarControlesPeriodo('pag');
@@ -2073,7 +2082,8 @@ async function carregarPagamentos() {
 
 async function carregarBaixas() {
   const queryStr=lerPeriodoLocal('bxs');
-  const resp=await chamarApi(`/pagamentos/historico?${queryStr}`);
+  const origem=document.getElementById('filtroOrigemBaixas')?.value||'';
+  const resp=await chamarApi(`/pagamentos/historico?${queryStr}${origem?`&origem=${encodeURIComponent(origem)}`:''}`);
   const historico=resp.dados;
   const MESES_CURTOS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const tituloBaixas=document.getElementById('tituloBaixas');

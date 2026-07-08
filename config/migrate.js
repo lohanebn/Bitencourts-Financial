@@ -138,6 +138,18 @@ async function migrar() {
   // v9: suporte a parcelamento "Casal" (rateado 50/50 entre os dois usuários)
   await db.query('ALTER TABLE parcelamentos MODIFY usuario_id INT NULL');
   await adicionar('parcelamentos','rateado','TINYINT(1) NOT NULL DEFAULT 0 AFTER usuario_id');
+
+  // v10: baixa de fatura de cartão vira uma única linha em "pagamentos" (era uma por compra).
+  // itens_relacionados guarda o JSON com os IDs das parcelas quitadas juntas, para o estorno
+  // conseguir reverter todas de uma vez.
+  const [tipoOrigem]=await db.query(
+    `SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='pagamentos' AND COLUMN_NAME='origem_tipo'`
+  );
+  if(tipoOrigem[0] && !tipoOrigem[0].COLUMN_TYPE.includes('CartaoFatura')){
+    await db.query(`ALTER TABLE pagamentos MODIFY COLUMN origem_tipo ENUM('Despesa','Parcela','CartaoFatura') NOT NULL`);
+  }
+  await adicionar('pagamentos','itens_relacionados','TEXT NULL AFTER observacao');
 }
 
 module.exports=migrar;

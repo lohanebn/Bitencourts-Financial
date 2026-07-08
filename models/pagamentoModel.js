@@ -66,24 +66,40 @@ const PagamentoModel = {
       .sort((a,b) => String(a.data_vencimento).localeCompare(String(b.data_vencimento)));
   },
 
-  async listarHistorico(periodo) {
+  async listarHistorico(periodo, origem = null) {
     const params=[];
-    let sql=`SELECT id,data_pagamento,descricao,origem,valor_pago,responsavel,origem_tipo,origem_id
-      FROM pagamentos WHERE 1=1`;
-    sql=aplicarPeriodo(sql,params,'data_pagamento',periodo);
-    sql+=' ORDER BY data_pagamento DESC,id DESC';
+    // Junta com parcelas/parcelamentos só para conseguir filtrar por tipo_obrigacao (Empréstimo,
+    // Financiamento, Consórcio...) — a coluna pagamentos.origem guarda a categoria escolhida pelo
+    // usuário, não o tipo da obrigação, então não dá pra filtrar direto por ela.
+    let sql=`SELECT pg.id,pg.data_pagamento,pg.descricao,pg.origem,pg.valor_pago,pg.responsavel,pg.origem_tipo,pg.origem_id
+      FROM pagamentos pg
+      LEFT JOIN parcelas pa ON pg.origem_tipo='Parcela' AND pa.id=pg.origem_id
+      LEFT JOIN parcelamentos p ON p.id=pa.parcelamento_id
+      WHERE 1=1`;
+    if (origem === 'Despesas') {
+      sql += ' AND pg.origem_tipo=\'Despesa\'';
+    } else if (origem === 'Cartão de Crédito') {
+      sql += ' AND pg.origem_tipo=\'CartaoFatura\'';
+    } else if (origem) {
+      sql += ' AND pg.origem_tipo=\'Parcela\' AND p.tipo_obrigacao=?';
+      params.push(origem);
+    }
+    sql=aplicarPeriodo(sql,params,'pg.data_pagamento',periodo);
+    sql+=' ORDER BY pg.data_pagamento DESC,pg.id DESC';
     const [rows]=await db.query(sql,params);
     return rows;
   },
 
-  // Registra pagamento de fatura de cartão (agrupa todas as parcelas pendentes do cartão no período)
+  // Registra pagamento de fatura de cartão (agrupa todas as parcelas pendentes do cartão no período
+  // numa ÚNICA linha de baixa — cada compra continua sendo quitada individualmente por baixo dos panos,
+  // mas o histórico mostra "Fatura {cartão}" em vez de uma linha por compra).
   async pagarCartaoFatura({ cartao_id, data_vencimento, valor_pago, data_pagamento, observacao }) {
     if (!cartao_id || !data_vencimento) throw new Error('cartao_id e data_vencimento são obrigatórios.');
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
       const [parcelas] = await conn.query(
-        `SELECT pa.*, p.descricao_compra, p.tipo_obrigacao,
+        `SELECT pa.*, p.descricao_compra, p.tipo_obrigacao, c.nome_cartao,
           CASE WHEN c.rateado=1 THEN 'Casal' ELSE COALESCE(u.nome,'') END responsavel
          FROM parcelas pa
          JOIN parcelamentos p ON p.id=pa.parcelamento_id
@@ -99,14 +115,16 @@ const PagamentoModel = {
           "UPDATE parcelas SET valor_pago=valor, status='Pago', data_pagamento=? WHERE id=?",
           [data_pagamento, pa.id]
         );
-        await conn.query(
-          `INSERT INTO pagamentos (origem_tipo,origem_id,descricao,origem,responsavel,valor_devido,valor_pago,credito_gerado,data_pagamento,observacao)
-           VALUES ('Parcela',?,?,'Cartão de Crédito',?,?,?,0,?,?)`,
-          [pa.id, pa.descricao_compra, pa.responsavel, pa.valor, pa.valor, data_pagamento, observacao||null]
-        );
       }
-      await conn.commit();
       const total = parcelas.reduce((s,p)=>s+Number(p.valor),0);
+      const responsaveis = [...new Set(parcelas.map(p=>p.responsavel))];
+      const responsavel = responsaveis.length===1 ? responsaveis[0] : 'Casal';
+      await conn.query(
+        `INSERT INTO pagamentos (origem_tipo,origem_id,descricao,origem,responsavel,valor_devido,valor_pago,credito_gerado,data_pagamento,observacao,itens_relacionados)
+         VALUES ('CartaoFatura',?,?,'Cartão de Crédito',?,?,?,0,?,?,?)`,
+        [cartao_id, `Fatura ${parcelas[0].nome_cartao||''}`.trim(), responsavel, total, total, data_pagamento, observacao||null, JSON.stringify(parcelas.map(p=>p.id))]
+      );
+      await conn.commit();
       return { total_pago: total, qtd_parcelas: parcelas.length };
     } catch (err) { await conn.rollback(); throw err; }
     finally { conn.release(); }
@@ -189,7 +207,7 @@ const PagamentoModel = {
     } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }
   },
 
-  // Estorna uma baixa: remove o registro e restaura o lançamento para Pendente
+  // Estorna uma baixa: remove o registro e restaura o(s) lançamento(s) para Pendente
   async estornar(id) {
     const conn = await db.getConnection();
     try {
@@ -197,6 +215,22 @@ const PagamentoModel = {
       const [rows] = await conn.query('SELECT * FROM pagamentos WHERE id=?', [id]);
       if (!rows[0]) throw new Error('Pagamento não encontrado.');
       const pag = rows[0];
+
+      // Baixa de fatura de cartão: uma única linha representa várias parcelas quitadas juntas
+      // (sempre em cheio, nunca parcial), então reverter é devolver cada uma para Pendente.
+      if (pag.origem_tipo === 'CartaoFatura') {
+        const parcelaIds = JSON.parse(pag.itens_relacionados || '[]');
+        for (const parcelaId of parcelaIds) {
+          await conn.query(
+            "UPDATE parcelas SET valor_pago=0, status='Pendente', data_pagamento=NULL WHERE id=?",
+            [parcelaId]
+          );
+        }
+        await conn.query('DELETE FROM pagamentos WHERE id=?', [id]);
+        await conn.commit();
+        return { mensagem: 'Baixa estornada com sucesso.' };
+      }
+
       const tabela = pag.origem_tipo === 'Despesa' ? 'despesas' : 'parcelas';
       const [itemRows] = await conn.query(`SELECT * FROM ${tabela} WHERE id=? FOR UPDATE`, [pag.origem_id]);
       if (itemRows[0]) {
