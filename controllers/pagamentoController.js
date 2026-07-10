@@ -43,6 +43,8 @@ module.exports = {
       await registrarAcao(req, 'Pagamento de fatura', 'Pagou uma fatura', gerarDetalhesCadastro('pagamento', {
         nome_cartao: cartao?.nome_cartao,
         valor_pago: dados.total_pago,
+        total_fatura: dados.total_fatura,
+        diferenca: dados.diferenca,
         qtd_parcelas: dados.qtd_parcelas,
         data_vencimento,
         data_pagamento

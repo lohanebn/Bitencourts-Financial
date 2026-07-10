@@ -2140,14 +2140,19 @@ async function confirmarRegistroPagamento(e){
   const id=document.getElementById('pagamentoOrigemId').value;
   const valor=Number(document.getElementById('pagamentoValor').value);
   const data=document.getElementById('pagamentoData').value;
+  let mensagem='Pagamento registrado. Todos os saldos foram recalculados.';
   if(tipo==='CartaoFatura'){
     const venc=e.target.dataset.faturaVenc;
-    await chamarApi('/pagamentos/cartao-fatura',{method:'POST',body:JSON.stringify({cartao_id:Number(id),data_vencimento:venc,valor_pago:valor,data_pagamento:data})});
+    const resp=await chamarApi('/pagamentos/cartao-fatura',{method:'POST',body:JSON.stringify({cartao_id:Number(id),data_vencimento:venc,valor_pago:valor,data_pagamento:data})});
+    const diferenca=Number(resp.dados?.diferenca||0);
+    if(diferenca<0) mensagem=`Fatura paga. ${formatarMoeda(Math.abs(diferenca))} vão para a fatura do mês seguinte.`;
+    else if(diferenca>0) mensagem=`Fatura paga. Crédito de ${formatarMoeda(diferenca)} aplicado na fatura do mês seguinte.`;
+    else mensagem='Fatura paga com sucesso.';
   } else {
     await chamarApi('/pagamentos',{method:'POST',body:JSON.stringify({origem_tipo:tipo,origem_id:Number(id),valor_pago:valor,data_pagamento:data})});
   }
   fecharModal('modalPagamento');
-  mostrarToast('Pagamento registrado. Todos os saldos foram recalculados.');
+  mostrarToast(mensagem);
   await carregarPagamentos();
   await carregarBaixas();
 }

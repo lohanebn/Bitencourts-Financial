@@ -55,7 +55,7 @@ const PagamentoModel = {
         FROM parcelas pa JOIN parcelamentos p ON p.id=pa.parcelamento_id
         LEFT JOIN usuarios u ON u.id=pa.usuario_id
         LEFT JOIN cartoes c ON c.id=p.cartao_id
-        WHERE pa.status='Pendente' AND pa.valor>pa.valor_pago AND p.tipo_obrigacao='Cartão de Crédito'`;
+        WHERE pa.status='Pendente' AND pa.valor<>pa.valor_pago AND p.tipo_obrigacao='Cartão de Crédito'`;
       sqlCC = aplicarPeriodo(sqlCC, pCC, 'pa.data_vencimento', periodo);
       sqlCC += ' GROUP BY p.cartao_id, YEAR(pa.data_vencimento), MONTH(pa.data_vencimento)';
       const [pcc] = await db.query(sqlCC, pCC);
@@ -93,6 +93,10 @@ const PagamentoModel = {
   // Registra pagamento de fatura de cartão (agrupa todas as parcelas pendentes do cartão no período
   // numa ÚNICA linha de baixa — cada compra continua sendo quitada individualmente por baixo dos panos,
   // mas o histórico mostra "Fatura {cartão}" em vez de uma linha por compra).
+  // A fatura é a soma de várias parcelas de compras diferentes, então diferença de pagamento não
+  // dá pra empurrar/abater numa parcela específica como no empréstimo: em vez disso cria um
+  // lançamento avulso de ajuste (positivo se pagou a menor, negativo se pagou a maior) que entra
+  // automaticamente na soma da fatura do mês seguinte daquele cartão.
   async pagarCartaoFatura({ cartao_id, data_vencimento, valor_pago, data_pagamento, observacao }) {
     if (!cartao_id || !data_vencimento) throw new Error('cartao_id e data_vencimento são obrigatórios.');
     const conn = await db.getConnection();
@@ -119,13 +123,37 @@ const PagamentoModel = {
       const total = parcelas.reduce((s,p)=>s+Number(p.valor),0);
       const responsaveis = [...new Set(parcelas.map(p=>p.responsavel))];
       const responsavel = responsaveis.length===1 ? responsaveis[0] : 'Casal';
+      const valorInformado = valor_pago != null && valor_pago !== '' ? Number(valor_pago) : total;
+      const diferenca = Number((valorInformado - total).toFixed(2));
+
+      let ajusteParcelaId = null;
+      if (diferenca !== 0) {
+        const [[cartao]] = await conn.query('SELECT usuario_id, rateado FROM cartoes WHERE id=?', [cartao_id]);
+        const proximoVencimento = new Date(`${data_vencimento}T12:00:00`);
+        proximoVencimento.setMonth(proximoVencimento.getMonth() + 1);
+        const proximoVencimentoStr = proximoVencimento.toISOString().slice(0, 10);
+        const descricaoAjuste = diferenca < 0 ? 'Diferença da fatura anterior' : 'Crédito da fatura anterior';
+        const [ajusteParcelamento] = await conn.query(
+          `INSERT INTO parcelamentos (usuario_id,cartao_id,tipo_obrigacao,categoria,descricao_compra,rateado,valor_total,qtd_parcelas,valor_parcela,data_compra,data_primeiro_vencimento)
+           VALUES (?,?,'Cartão de Crédito','Ajuste',?,?,?,1,?,?,?)`,
+          [cartao?.usuario_id ?? null, cartao_id, descricaoAjuste, cartao?.rateado ? 1 : 0, Math.abs(diferenca), Math.abs(diferenca), data_pagamento, proximoVencimentoStr]
+        );
+        const [ajusteParcela] = await conn.query(
+          `INSERT INTO parcelas (parcelamento_id,usuario_id,numero_parcela,total_parcelas,valor,valor_pago,data_vencimento,status)
+           VALUES (?,?,1,1,?,0,?,'Pendente')`,
+          [ajusteParcelamento.insertId, cartao?.usuario_id ?? null, diferenca, proximoVencimentoStr]
+        );
+        ajusteParcelaId = ajusteParcela.insertId;
+      }
+
       await conn.query(
         `INSERT INTO pagamentos (origem_tipo,origem_id,descricao,origem,responsavel,valor_devido,valor_pago,credito_gerado,data_pagamento,observacao,itens_relacionados)
          VALUES ('CartaoFatura',?,?,'Cartão de Crédito',?,?,?,0,?,?,?)`,
-        [cartao_id, `Fatura ${parcelas[0].nome_cartao||''}`.trim(), responsavel, total, total, data_pagamento, observacao||null, JSON.stringify(parcelas.map(p=>p.id))]
+        [cartao_id, `Fatura ${parcelas[0].nome_cartao||''}`.trim(), responsavel, total, valorInformado, data_pagamento, observacao||null,
+          JSON.stringify({ quitadas: parcelas.map(p=>p.id), ajuste_id: ajusteParcelaId })]
       );
       await conn.commit();
-      return { total_pago: total, qtd_parcelas: parcelas.length };
+      return { total_pago: valorInformado, total_fatura: total, diferenca, qtd_parcelas: parcelas.length };
     } catch (err) { await conn.rollback(); throw err; }
     finally { conn.release(); }
   },
@@ -156,54 +184,54 @@ const PagamentoModel = {
       }
       const saldo = Math.max(Number(item.valor) - Number(item.valor_pago || 0), 0);
       let disponivel = valorInformado;
-      const aplicado = Math.min(disponivel, saldo);
-      disponivel = Number((disponivel - aplicado).toFixed(2));
-      const novoPago = Number(item.valor_pago || 0) + aplicado;
-      const parcial = aplicado < saldo;
-      if (parcial && origem_tipo === 'Parcela') {
-        const restante = Number((saldo-aplicado).toFixed(2));
-        const [prox] = await conn.query(`SELECT id FROM parcelas WHERE parcelamento_id=? AND numero_parcela>? ORDER BY numero_parcela LIMIT 1 FOR UPDATE`,[item.parcelamento_id,item.numero_parcela]);
-        if (prox[0]) await conn.query('UPDATE parcelas SET valor=valor+? WHERE id=?',[restante,prox[0].id]);
-        else await conn.query(`INSERT INTO parcelas(parcelamento_id,usuario_id,numero_parcela,total_parcelas,valor,valor_pago,data_vencimento,status)
-          VALUES(?,?,?,?,?,0,DATE_ADD(?,INTERVAL 1 MONTH),'Pendente')`,[item.parcelamento_id,item.usuario_id,Number(item.numero_parcela)+1,Number(item.total_parcelas)+1,restante,item.data_vencimento]);
-        await conn.query('UPDATE parcelas SET valor=?,valor_pago=?,status=\'Pago\',data_pagamento=? WHERE id=?',[novoPago,novoPago,data_pagamento,origem_id]);
-      } else if (parcial && origem_tipo === 'Despesa') {
-        const restante = Number((saldo-aplicado).toFixed(2));
-        const novaData = new Date(`${item.data_vencimento}T12:00:00`); novaData.setMonth(novaData.getMonth()+1);
-        const [complemento] = await conn.query(`INSERT INTO despesas(usuario_id,rateada,descricao,categoria,tipo,eh_recorrente,dia_vencimento,periodicidade,duracao_tipo,qtd_ocorrencias,despesa_origem_id,valor,valor_pago,data_vencimento,status,observacao)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0,?,'Pendente',?)`,[item.usuario_id,item.rateada,item.descricao+' - Complemento',item.categoria,item.tipo,item.eh_recorrente,item.dia_vencimento,item.periodicidade,item.duracao_tipo,item.qtd_ocorrencias,item.despesa_origem_id||item.id,restante,novaData.toISOString().slice(0,10),item.observacao]);
-        if(item.rateada) await conn.query(`INSERT INTO despesa_rateios(despesa_id,usuario_id,percentual,valor)
-          SELECT ?,usuario_id,percentual,ROUND(?*percentual/100,2) FROM despesa_rateios WHERE despesa_id=?`,[complemento.insertId,restante,item.id]);
-        await conn.query("UPDATE despesas SET valor=?,valor_pago=?,status='Pago' WHERE id=?",[novoPago,novoPago,origem_id]);
-      } else if (origem_tipo === 'Despesa') {
-        await conn.query("UPDATE despesas SET valor_pago=?, status='Pago' WHERE id=?",[novoPago,origem_id]);
+      let aplicado, novoPago;
+
+      if (origem_tipo === 'Despesa') {
+        // Despesa fixa/variável: paga naquele valor e encerra, sem complemento nem
+        // cascata pras próximas — pago a menor ou a maior não muda mais nada.
+        aplicado = valorInformado;
+        novoPago = Number(item.valor_pago || 0) + valorInformado;
+        disponivel = 0;
+        await conn.query("UPDATE despesas SET valor_pago=?, status='Pago' WHERE id=?", [novoPago, origem_id]);
       } else {
-        await conn.query("UPDATE parcelas SET valor_pago=?, status='Pago', data_pagamento=? WHERE id=?",[novoPago,data_pagamento,origem_id]);
-      }
-      if (disponivel > 0 && origem_tipo === 'Parcela') {
-        const [proximas] = await conn.query(`SELECT id, valor, valor_pago FROM parcelas
-          WHERE parcelamento_id=? AND numero_parcela>? AND status='Pendente' ORDER BY numero_parcela FOR UPDATE`,
-          [item.parcelamento_id, item.numero_parcela]);
-        for (const proxima of proximas) {
-          if (disponivel <= 0) break;
-          const saldoProxima = Number(proxima.valor) - Number(proxima.valor_pago || 0);
-          const abatimento = Math.min(disponivel, saldoProxima);
-          const pagoProxima = Number(proxima.valor_pago || 0) + abatimento;
-          disponivel = Number((disponivel - abatimento).toFixed(2));
-          await conn.query('UPDATE parcelas SET valor_pago=?, status=?, data_pagamento=? WHERE id=?',
-            [pagoProxima, pagoProxima >= Number(proxima.valor) ? 'Pago' : 'Pendente', pagoProxima >= Number(proxima.valor) ? data_pagamento : null, proxima.id]);
+        aplicado = Math.min(disponivel, saldo);
+        disponivel = Number((disponivel - aplicado).toFixed(2));
+        novoPago = Number(item.valor_pago || 0) + aplicado;
+        const parcial = aplicado < saldo;
+        if (parcial) {
+          const restante = Number((saldo-aplicado).toFixed(2));
+          const [prox] = await conn.query(`SELECT id FROM parcelas WHERE parcelamento_id=? AND numero_parcela>? ORDER BY numero_parcela LIMIT 1 FOR UPDATE`,[item.parcelamento_id,item.numero_parcela]);
+          if (prox[0]) await conn.query('UPDATE parcelas SET valor=valor+? WHERE id=?',[restante,prox[0].id]);
+          else await conn.query(`INSERT INTO parcelas(parcelamento_id,usuario_id,numero_parcela,total_parcelas,valor,valor_pago,data_vencimento,status)
+            VALUES(?,?,?,?,?,0,DATE_ADD(?,INTERVAL 1 MONTH),'Pendente')`,[item.parcelamento_id,item.usuario_id,Number(item.numero_parcela)+1,Number(item.total_parcelas)+1,restante,item.data_vencimento]);
+          await conn.query('UPDATE parcelas SET valor=?,valor_pago=?,status=\'Pago\',data_pagamento=? WHERE id=?',[novoPago,novoPago,data_pagamento,origem_id]);
+        } else {
+          await conn.query("UPDATE parcelas SET valor_pago=?, status='Pago', data_pagamento=? WHERE id=?",[novoPago,data_pagamento,origem_id]);
+        }
+        // Pago a maior: excedente abate direto da ÚLTIMA parcela do parcelamento (não mais
+        // cascata pelas próximas em ordem). Se não sobrar saldo nela pra abater, o resto do
+        // crédito só fica registrado em credito_gerado, sem mais nenhuma ação.
+        if (disponivel > 0) {
+          const [ultima] = await conn.query(`SELECT id, valor, valor_pago FROM parcelas
+            WHERE parcelamento_id=? AND id<>? ORDER BY numero_parcela DESC LIMIT 1 FOR UPDATE`,
+            [item.parcelamento_id, origem_id]);
+          if (ultima[0]) {
+            const saldoUltima = Number(ultima[0].valor) - Number(ultima[0].valor_pago || 0);
+            const abatimento = Math.min(disponivel, saldoUltima);
+            if (abatimento > 0) {
+              const pagoUltima = Number(ultima[0].valor_pago || 0) + abatimento;
+              disponivel = Number((disponivel - abatimento).toFixed(2));
+              await conn.query('UPDATE parcelas SET valor_pago=?, status=?, data_pagamento=? WHERE id=?',
+                [pagoUltima, pagoUltima >= Number(ultima[0].valor) ? 'Pago' : 'Pendente', pagoUltima >= Number(ultima[0].valor) ? data_pagamento : null, ultima[0].id]);
+            }
+          }
         }
       }
-      if (disponivel > 0 && origem_tipo === 'Despesa') {
-        const raiz=item.despesa_origem_id||item.id;
-        const [proximas]=await conn.query(`SELECT id,valor,valor_pago FROM despesas WHERE id<>? AND status IN ('Pendente','Atrasado')
-          AND (despesa_origem_id=? OR id=?) ORDER BY data_vencimento FOR UPDATE`,[item.id,raiz,raiz]);
-        for(const proxima of proximas){if(disponivel<=0)break;const s=Number(proxima.valor)-Number(proxima.valor_pago||0);const a=Math.min(disponivel,s);const pago=Number(proxima.valor_pago||0)+a;disponivel=Number((disponivel-a).toFixed(2));await conn.query("UPDATE despesas SET valor_pago=?,status=? WHERE id=?",[pago,pago>=Number(proxima.valor)?'Pago':'Pendente',proxima.id]);}
-      }
+
       await conn.query(`INSERT INTO pagamentos (origem_tipo,origem_id,descricao,origem,responsavel,valor_devido,valor_pago,credito_gerado,data_pagamento,observacao)
         VALUES (?,?,?,?,?,?,?,?,?,?)`, [origem_tipo, origem_id, descricaoPagamento, origemPagamento, responsavelPagamento, saldo, valorInformado, disponivel, data_pagamento, observacao || null]);
       await conn.commit();
-      return { saldo_anterior: saldo, valor_pago: valorInformado, saldo_pendente: Math.max(saldo-aplicado,0), credito: disponivel };
+      return { saldo_anterior: saldo, valor_pago: valorInformado, saldo_pendente: origem_tipo === 'Despesa' ? 0 : Math.max(saldo-aplicado,0), credito: disponivel };
     } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }
   },
 
@@ -218,13 +246,21 @@ const PagamentoModel = {
 
       // Baixa de fatura de cartão: uma única linha representa várias parcelas quitadas juntas
       // (sempre em cheio, nunca parcial), então reverter é devolver cada uma para Pendente.
+      // itens_relacionados guarda { quitadas, ajuste_id } desde que passou a existir o ajuste de
+      // diferença/crédito pra fatura seguinte (registros antigos ainda são só um array de ids).
       if (pag.origem_tipo === 'CartaoFatura') {
-        const parcelaIds = JSON.parse(pag.itens_relacionados || '[]');
+        const relacionados = JSON.parse(pag.itens_relacionados || '[]');
+        const parcelaIds = Array.isArray(relacionados) ? relacionados : relacionados.quitadas;
+        const ajusteId = Array.isArray(relacionados) ? null : relacionados.ajuste_id;
         for (const parcelaId of parcelaIds) {
           await conn.query(
             "UPDATE parcelas SET valor_pago=0, status='Pendente', data_pagamento=NULL WHERE id=?",
             [parcelaId]
           );
+        }
+        if (ajusteId) {
+          const [[ajuste]] = await conn.query('SELECT parcelamento_id FROM parcelas WHERE id=?', [ajusteId]);
+          if (ajuste) await conn.query('DELETE FROM parcelamentos WHERE id=?', [ajuste.parcelamento_id]);
         }
         await conn.query('DELETE FROM pagamentos WHERE id=?', [id]);
         await conn.commit();
