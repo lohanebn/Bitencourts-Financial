@@ -27,8 +27,6 @@ function gerarValoresParcelas(valorTotal, valorParcela, qtd) {
 }
 
 // Calcula datas de vencimento mensais a partir de uma data-base
-// Para Cartão de Crédito: base = data_compra, 1ª parcela = base + 1 mês
-// Para os demais: base = data_primeiro_vencimento, 1ª parcela = base (mês 0)
 function calcularDatasVencimento(dataBase, qtd, deslocamentoInicial = 1) {
   const datas = [];
   for (let i = 0; i < qtd; i++) {
@@ -37,6 +35,20 @@ function calcularDatasVencimento(dataBase, qtd, deslocamentoInicial = 1) {
     datas.push(d.toISOString().slice(0, 10));
   }
   return datas;
+}
+
+// Calcula o vencimento da 1ª fatura de uma compra no cartão respeitando o fechamento: uma
+// compra feita ATÉ o dia de fechamento entra na fatura que já vai fechar (vence no próximo
+// vencimento); uma compra feita DEPOIS do fechamento só entra no ciclo seguinte (vence 1 mês
+// mais tarde). As parcelas seguintes vencem sempre 1 mês depois da anterior.
+function calcularPrimeiroVencimentoCartao(dataCompra, diaFechamento, diaVencimento) {
+  const compra = new Date(`${dataCompra}T12:00:00`);
+  let mesFechamento = compra.getMonth();
+  const anoFechamento = compra.getFullYear();
+  if (compra.getDate() > diaFechamento) mesFechamento += 1;
+  const mesVencimento = mesFechamento + (diaVencimento <= diaFechamento ? 1 : 0);
+  const vencimento = new Date(anoFechamento, mesVencimento, diaVencimento, 12);
+  return vencimento.toISOString().slice(0, 10);
 }
 
 const ParcelamentoModel = {
@@ -104,7 +116,13 @@ const ParcelamentoModel = {
 
     let datas;
     if (tipo_obrigacao === 'Cartão de Crédito') {
-      datas = calcularDatasVencimento(data_compra, qtd, 1);
+      const [[cartao]] = cartao_id
+        ? await db.query('SELECT dia_fechamento, dia_vencimento FROM cartoes WHERE id=?', [cartao_id])
+        : [[null]];
+      const primeiroVencimento = cartao
+        ? calcularPrimeiroVencimentoCartao(data_compra, cartao.dia_fechamento, cartao.dia_vencimento)
+        : calcularDatasVencimento(data_compra, 1, 1)[0];
+      datas = calcularDatasVencimento(primeiroVencimento, qtd, 0);
     } else {
       datas = calcularDatasVencimento(data_primeiro_vencimento, qtd, 0);
     }
