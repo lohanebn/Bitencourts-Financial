@@ -1687,7 +1687,10 @@ async function _carregarFaturaCorpo(cartaoId) {
           <td data-label="Descrição">${escaparHtml(i.descricao_compra)}</td>
           <td data-label="Categoria">${escaparHtml(i.categoria || 'Cartão')}</td>
           <td data-label="Valor" style="text-align:right" class="valor-negativo">${formatarMoeda(i.valor)}</td>
-          <td><button class="botao-icone fatura-editar-btn" data-idx="${idx}" title="Editar">✎</button></td>
+          <td class="celula-acoes">
+            <button class="botao-icone fatura-editar-btn" data-idx="${idx}" title="Editar">✎</button>
+            <button class="botao-icone fatura-excluir-btn" data-idx="${idx}" title="Excluir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+          </td>
         </tr>`).join('')}
       </tbody>
       <tfoot>
@@ -1703,6 +1706,14 @@ async function _carregarFaturaCorpo(cartaoId) {
     const p = parcelas[Number(btn.dataset.idx)];
     btn.addEventListener('click', () => editarLancamentoFatura(p));
   });
+  corpo.querySelectorAll('.fatura-excluir-btn').forEach(btn => {
+    const p = parcelas[Number(btn.dataset.idx)];
+    btn.addEventListener('click', () => excluirLancamentoFatura(p));
+  });
+}
+
+function excluirLancamentoFatura(parcela) {
+  confirmarExclusao('parcelamento', parcela.parcelamento_id, 'esta compra (todas as parcelas, inclusive já pagas, serão removidas)');
 }
 
 function editarLancamentoFatura(parcela) {
@@ -2373,7 +2384,11 @@ const RECARREGAR_APOS_EXCLUSAO = {
   receita: carregarTabelaReceitas,
   despesa: carregarTabelaDespesas,
   cartao: carregarTabelaCartoes,
-  parcelamento: carregarTabelaParcelamentos
+  parcelamento: async () => {
+    await carregarTabelaParcelamentos();
+    // Se a exclusão veio de dentro do modal de detalhamento da fatura, atualiza o extrato também.
+    if (Estado._faturaCartaoId) await _carregarFaturaCorpo(Estado._faturaCartaoId);
+  }
 };
 
 function confirmarExclusao(tipo, id, descricaoItem) {
