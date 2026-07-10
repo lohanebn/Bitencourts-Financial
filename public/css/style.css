@@ -956,6 +956,10 @@ table.tabela-compacta td[data-label]::before {
 
 .fundo-modal.aberto { display: flex; }
 
+/* Confirmação de exclusão pode ser aberta de dentro de outro modal (ex.: excluir um
+   lançamento a partir do detalhamento da fatura) — precisa sempre ficar por cima. */
+#modalConfirmar { z-index: 1100; }
+
 .caixa-modal {
   background: var(--cor-superficie);
   border-radius: var(--raio);

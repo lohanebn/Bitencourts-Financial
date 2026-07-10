@@ -169,6 +169,7 @@ function mostrarToast(mensagem, tipo = 'sucesso') {
 async function chamarApi(endpoint, opcoes = {}) {
   try {
     const resposta = await fetch(`${API}${endpoint}`, {
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
         ...(Estado.authToken ? { Authorization: `Bearer ${Estado.authToken}` } : {})
