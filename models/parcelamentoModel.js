@@ -57,8 +57,8 @@ const ParcelamentoModel = {
     // LEFT JOIN cartoes: NULL para tipos sem cartão vinculado
     const [rows] = await db.query(`
       SELECT p.*,
-             u.nome  AS usuario_nome,
-             u.cor   AS usuario_cor,
+             COALESCE(u.nome, CASE WHEN p.rateado = 1 THEN 'Casal' ELSE NULL END) AS usuario_nome,
+             COALESCE(u.cor,  CASE WHEN p.rateado = 1 THEN '#4A7FE8' ELSE NULL END) AS usuario_cor,
              c.nome_cartao,
              c.banco,
              (SELECT COUNT(*)
@@ -68,7 +68,7 @@ const ParcelamentoModel = {
                 FROM parcelas
                WHERE parcelamento_id = p.id AND status = 'Pendente')      AS valor_restante
         FROM parcelamentos p
-        INNER JOIN usuarios u ON u.id = p.usuario_id
+        LEFT  JOIN usuarios u ON u.id = p.usuario_id
         LEFT  JOIN cartoes  c ON c.id = p.cartao_id
        ORDER BY p.criado_em DESC
     `);
