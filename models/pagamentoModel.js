@@ -138,10 +138,13 @@ const PagamentoModel = {
            VALUES (?,?,'Cartão de Crédito','Ajuste',?,?,?,1,?,?,?)`,
           [cartao?.usuario_id ?? null, cartao_id, descricaoAjuste, cartao?.rateado ? 1 : 0, Math.abs(diferenca), Math.abs(diferenca), data_pagamento, proximoVencimentoStr]
         );
+        // Guarda o valor com sinal invertido em relação a "diferenca": pago a menor (diferenca<0)
+        // precisa SOMAR na fatura seguinte (valor positivo); pago a maior (diferenca>0) precisa
+        // virar crédito, ou seja, SUBTRAIR (valor negativo).
         const [ajusteParcela] = await conn.query(
           `INSERT INTO parcelas (parcelamento_id,usuario_id,numero_parcela,total_parcelas,valor,valor_pago,data_vencimento,status)
            VALUES (?,?,1,1,?,0,?,'Pendente')`,
-          [ajusteParcelamento.insertId, cartao?.usuario_id ?? null, diferenca, proximoVencimentoStr]
+          [ajusteParcelamento.insertId, cartao?.usuario_id ?? null, -diferenca, proximoVencimentoStr]
         );
         ajusteParcelaId = ajusteParcela.insertId;
       }
